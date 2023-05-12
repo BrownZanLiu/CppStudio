@@ -1,0 +1,5 @@
+BuildClang/
+BuildGcc/
+CMakeFiles/
+CMakeUserPresets.json
+CMakeCache.txt
