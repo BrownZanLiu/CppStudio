@@ -7,3 +7,6 @@
 [submodule "grpc"]
 	path = grpc
 	url = git@github.com:grpc/grpc.git
+[submodule "cmake"]
+	path = cmake
+	url = https://github.com/CLIUtils/cmake

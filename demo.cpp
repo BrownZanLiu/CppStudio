@@ -28,6 +28,7 @@ int main(int argc, char **argv)
 	liuzan::demo::CmakeDemo vCMakeDemo{3, 26, 3};
 
 	std::cout << "cmake version: " << vCMakeDemo << std::endl;
+	std::cout << "C++ version: " << __cplusplus << std::endl;
 
 	return 0;
 }
