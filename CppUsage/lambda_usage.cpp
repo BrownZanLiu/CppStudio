@@ -1,7 +1,9 @@
 #include <iostream>
 #include <vector>
 
-int main(int argc, char **argv)
+#include <gtest/gtest.h>
+
+TEST(TestVector, Demo)
 {
 	std::vector<int> vInts{1, 2, 3, 4};
 

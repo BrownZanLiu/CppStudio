@@ -5,18 +5,29 @@ add_executable(
 	cppusage
 	${CPPUSAGE_SRC}
 )
-
-#target_include_directories(
-#	cppusage
-#	BEFORE
-#	PRIVATE
-#	/usr/local/gcc-${MY_GCC_VERSION}/include/c++/${MY_GCC_VERSION}
-#)
-
-#target_link_libraries(
-#	cppusage
-#	PRIVATE
-#	/usr/local/gcc-${MY_GCC_VERSION}/lib64/libstdc++.a
-#	/usr/local/gcc-${MY_GCC_VERSION}/lib64/libstdc++fs.a
-#)
+target_compile_features(
+	cppusage
+	PRIVATE
+	cxx_std_23
+)
+if (${COMPILER_SUITE} STREQUAL "gcc")
+	target_link_options(
+		cppusage
+		PRIVATE
+		-static-libgcc  # GCC support for code generation of integer/floating-point arithmetics, etc
+		-static-libstdc++
+	)
+	target_link_libraries(
+		cppusage
+		gcc_eh  # Gcc support for code generation of C++ error handling, RTTI, etc
+		stdc++fs  # No shared version, so maybe ok to omitted
+	)
+endif()
+target_link_libraries(
+	cppusage
+	gtest_main
+	gmock_main
+	gflags_nothreads_static
+	#grpc  # Don't work for now
+)
 
