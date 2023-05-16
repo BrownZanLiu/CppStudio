@@ -28,6 +28,6 @@ target_link_libraries(
 	gtest_main
 	gmock_main
 	gflags_nothreads_static
-	#grpc  # Don't work for now
+	#grpc
 )
 

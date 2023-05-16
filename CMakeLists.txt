@@ -55,12 +55,12 @@ FetchContent_Declare(
 	GIT_REPOSITORY https://github.com/gflags/gflags.git
 	GIT_TAG e171aa2d15ed9eb17054558e0b3a6a413bb01067 # v2.2.2
 )
-FetchContent_Declare(
-	grpc
-	GIT_REPOSITORY https://github.com/grpc/grpc.git
-	GIT_TAG 674b30373e2d6a1e26425952805179f8d52a8c00 # release-0.15.1
-)
-FetchContent_MakeAvailable(googletest gflags grpc)
+#FetchContent_Declare(
+#	grpc
+#	GIT_REPOSITORY https://github.com/grpc/grpc.git
+#	GIT_TAG 8871dab19b4ab5389e28474d25cfeea61283265c # v1.54.2
+#)
+FetchContent_MakeAvailable(googletest gflags)  # grpc)
 
 #### Making an demo executable ####
 add_executable(
