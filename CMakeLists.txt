@@ -20,6 +20,8 @@ set(COMPILER_SUITE "gcc"
 )
 if (${COMPILER_SUITE} STREQUAL "gcc")
 	set(MY_GCC_VERSION "12.2.0")
+	# Following two sets will trigger cmake to identify the right toolchain, gcc/c++ standard header
+	# files and gcc/c++ static libraries. Shared libraries, such as libstdc++.so, will an exceptions.
 	set(CMAKE_C_COMPILER "/usr/local/gcc-${MY_GCC_VERSION}/bin/gcc-${MY_GCC_VERSION}"
 		CACHE PATH ""
 		FORCE
