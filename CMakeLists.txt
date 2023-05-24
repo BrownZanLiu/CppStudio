@@ -10,7 +10,8 @@ project(
 	CppStudio  # project name
 	VERSION 1.0.0
 	DESCRIPTION "All kinds of test around C++ core languages or C++ libraries."
-	LANGUAGES CXX
+	HOMEPAGE_URL "Empty for now"
+	LANGUAGES CXX C ASM
 )
 
 #### Toolchain configurations ####
