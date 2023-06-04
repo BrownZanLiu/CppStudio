@@ -10,3 +10,6 @@
 [submodule "cmake"]
 	path = cmake
 	url = https://github.com/CLIUtils/cmake
+[submodule "boost"]
+	path = boost
+	url = git@github.com:boostorg/boost.git
