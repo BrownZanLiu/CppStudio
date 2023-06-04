@@ -104,4 +104,5 @@ endif()
 
 #### Add subdirectories ####
 add_subdirectory(CppUsage)
+add_subdirectory(BoostTest)
 
