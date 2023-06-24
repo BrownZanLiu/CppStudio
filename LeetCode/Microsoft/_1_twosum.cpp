@@ -33,15 +33,59 @@
 	链接：https://leetcode.cn/problems/two-sum
 	著作权归领扣网络所有。商业转载请联系官方授权，非商业转载请注明出处。
 */
-#include <array>
+
+/**
+ * Copyright: brown.liuzan@outlook.com
+ */
+
+#include <map>
+#include <vector>
 #include <utility>
+
+#include <dynamic_assert.hpp>
+#include <gtest/gtest.h>
 
 namespace liuzan {
 namespace leetcode {
 namespace microsoft {
 
-std::pair<int,int> FindTwoElems4Sum(std::array<int> nums, int sum)
+std::pair<int,int> Find2Elems4Sum(std::vector<int> nums, int sum)
 {
+	std::map<int, int> vInteger2Index;
+
+	int i = 0;
+	vInteger2Index.emplace(nums[i], i);
+	int tgt;
+	int index;
+	for (++i; i < nums.size(); ++i) {
+		tgt = sum - nums[i];
+		auto it = vInteger2Index.find(tgt);
+		if (it == vInteger2Index.end()) {
+			vInteger2Index.emplace(nums[i], i);
+		} else {
+			return std::make_pair(it->second, i);
+		}
+	}
+
+	return std::make_pair<int, int>(-1, -1);
+}
+
+TEST(TSMicrosoft, TCFind2Elems4sum)
+{
+	std::vector<int> nums1{2,7,11,15};
+	int sum1{9};
+	auto result1= Find2Elems4Sum(nums1, sum1);
+	EXPECT_EQ(result1, std::make_pair(0, 1));
+
+	std::vector<int> nums2{3, 2, 4};
+	int sum2{6};
+	auto result2= Find2Elems4Sum(nums2, sum2);
+	EXPECT_EQ(result2, std::make_pair(1, 2));
+
+	std::vector<int> nums3{3, 3};
+	int sum3{6};
+	auto result3= Find2Elems4Sum(nums3, sum3);
+	EXPECT_EQ(result3, std::make_pair(0, 1));
 }
 
 }  // namesapce microsoft

@@ -1,3 +1,7 @@
+/**
+ * Copyright: brown.liuzan@outlook.com
+ */
+
 #ifndef LIUZAN_DYNAMIC_ASSERT_H
 #define LIUZAN_DYNAMIC_ASSERT_H
 

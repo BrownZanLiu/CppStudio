@@ -1,3 +1,7 @@
+/**
+ * Copyright: brown.liuzan@outlook.com
+ */
+
 #include <iostream>
 
 #include <dynamic_assert.hpp>
