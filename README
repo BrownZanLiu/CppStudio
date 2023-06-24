@@ -1,0 +1,42 @@
+Repository description
+	This is my C++ studio repository. It will host my implementation of common algorithms, utilities, etc.
+
+Document formating conventions
+	Python style indentation. 4-character indent per level.
+
+C++ is better than C
+    C++ has more powerful abstracting and modeling features.
+    C++ is more type-safe which enables compilers to help us more efficently.
+    C++ has more elegant and richer native support of common data structures and algorithms
+        Common container data structures
+        Common algorithms
+    C++ has more powerful native support of string operations
+        String
+        Regular expression
+    C++ has native support of concurent programming
+        Atomic primitives
+        Ordering primitives
+        Threading
+        Mutex
+        Conditional variable
+    C++ has elegant native support of dynamic resourcer lifecycle management.
+        Smart pointers
+    C++ has more powerful native support of error handling.
+    C++ has native support of common utilities
+        Common utilities
+
+Coding style:
+    See Google C++ Style Guide:
+        https://google.github.io/styleguide/cppguide.html
+    For Google C++ Style Guide, there is a script to check:
+        https://raw.githubusercontent.com/google/styleguide/gh-pages/cpplint/cpplint.py
+
+Coding conversions
+	Naming
+		Capitalized words concatenated with unserscores for constants.
+	Functions
+		At most 4 levels indentation.
+		At most 6 parameters.
+		At most 7 local variables.
+		At most 150 lines.
+

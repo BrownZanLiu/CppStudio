@@ -103,6 +103,8 @@ if (${COMPILER_SUITE} STREQUAL "gcc")
 endif()
 
 #### Add subdirectories ####
+add_subdirectory(Common)
 add_subdirectory(CppUsage)
 add_subdirectory(BoostTest)
+add_subdirectory(DataStructruesAndAlgorithmsMadeEasy)
 
