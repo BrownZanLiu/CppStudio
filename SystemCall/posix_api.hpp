@@ -1,6 +1,7 @@
 /**
  * Copyright: brown.liuzan@outlook.com
  * Description: C++ Abstraction of Posix API that focuses on Linux system calls.
+ * Version: kernel-5.14
  * References:
  * 1) https://man7.org/linux/man-pages/man2/syscalls.2.html
  * 2) /usr/include/asm/unistd_64.h included by asm/unistd.h included by sys/syscall.h
@@ -8,6 +9,7 @@
  * 4) /usr/include/unistd.h
  * 5) /usr/include/features.h included by unistd.h
  * for _ISO*|_POSIX_*|_XOPEN_*|__USE_*|__GNU*|__GLIBC*|*_SOURCE
+ *
  */
 
 #ifndef LIUZAN_SYSTEMCALL_POSIX_API_HPP
@@ -167,6 +169,82 @@ public:
 	 * Linux system call semantics:
 	 *
 	 * Linux system call synopsis:  // <KernelRoot>/fs/open.c
+	 *
+	 * Linux system headers:
+	 *
+	 * Glibc synopsis:
+	 *
+	 * Notes on Linux implementation:
+	 *
+	 */
+
+	/**
+	 * Linux system call semantics:
+	 *     Open and possibly create a file.
+	 *     Return a new file descriptor or -1 no error
+	 *
+	 * Linux system call synopsis:
+	 *     // __NR_open 2; <KernelRoot>/fs/open.c
+	 *     long sys_open(char const *pathname, int flags, umode_t mode);
+	 *     // __NR_creat 85; <KernelRoot>/fs/open.c
+	 *     long sys_creat(char const *pathname, umode_t mode);
+	 *     // __NR_openat 257; <KernelRoot>/fs/open.c
+	 *     long sys_openat(int dfd, char const *pathname, int flags, umode_t mode);
+	 *     // __NR_openat2 437; <KernelRoot>/fs/open.c; kernel-5.6
+	 *     long sys_openat2(int dfd, char const *pathname, struct open_how *how, size_t usize);
+	 *
+	 * Linux system headers:
+	 *     fcntl.h
+	 *     // __OPEN_NEEDS_MODE(oflag:O_CREAT|__O_TMPFILE), mode_t, off_t, off64_t, pid_t
+	 *     // S_IF*, S_IS*, S_I*USR, S_IRWXU, S_I*GRP, S_IRWXG, S_I*OTH, S_IRWXO
+	 *     // F_OK, X_OK, W_OK, R_OK
+	 *     // SEEK_SET|CUR|END
+	 *     // AT_*
+	 *          features.h
+	 *          bits/types.h  // __mode_t, __dev_t, __off_t, __off64_t and so on
+	 *          bits/fcntl.h  // O_*, F_*, FD_*; all the numbers and flag bits for open, fcntl and so on
+	 *          bits/types/struct_timespec.h
+	 *          bits/stat.h  // __S_IF*, __S_IS*, __S_I*
+	 *
+	 * Glibc synopsis:
+	 *     int open(char const *file, int oflag, ...);
+	 *     int openat(int dfd, char const *pathname, int oflag, ...);
+	 *     int creat(char const *filename, mode_t mode);
+	 *     // __USE_LARGEFILE64 || __USE_FILE_OFFSET64
+	 *     int openat64(int dfd, char const *file, int oflag, ...);
+	 *     int open64(char const *file, int oflag, ...);
+	 *     int creat64(char const *filename, mode_t mode);
+	 *
+	 * Notes on Linux implementation:
+	 *     They are cancellation points.
+	 *
+	 */
+
+	/**
+	 * Linux system call semantics:
+	 *
+	 * Linux system call synopsis:
+	 *     // __NR_name_to_handle_at 303; <KernelRoot>/fs/fhandle.c
+	 *     long name_to_handle_at(int dfd, char const *name, struct file_handle *handle, int *mnt_id, int flags);
+	 *     // __NR_open_by_handle_at 304; <KernelRoot>/fs/fhandle.c
+	 *     long sys_open_by_handle_at(int mountdirfd, struct file_handle *handle, int flags);
+	 *
+	 * Linux system headers:
+	 *
+	 * Glibc synopsis:
+	 *
+	 * Notes on Linux implementation:
+	 *
+	 */
+
+	/**
+	 * Linux system call semantics:
+	 *
+	 * Linux system call synopsis:
+	 *     // __NR_open_tree 428; <KernelRoot>/fs/namespace.c; kernel-5.2
+	 *     long sys_open_tree(int dfd, char const *pathname, unsigned flags);
+	 *     // __NR_fsopen 430; <KernelRoot>/fs/fsopen.c; kernel-5.2
+	 *     long sys_fsopen(char const *fsname, unsigned flags);
 	 *
 	 * Linux system headers:
 	 *
@@ -433,6 +511,59 @@ public:
 	 * Synopsis:
 	 *     int execveat(int dirfd, char const *pathname, char const *const argv[], char const *const envp[], int flags);
 	 */
+
+	/**
+	 * Linux system call semantics:
+	 *
+	 * Linux system call synopsis:
+	 *     // __NR_pidfd_open 434; <KernelRoot>/kernel/pid.c; kernel-5.3
+	 *
+	 * Linux system headers:
+	 *
+	 * Glibc synopsis:
+	 *
+	 * Notes on Linux implementation:
+	 *
+	 */
+
+};
+
+class InterProcessCommunication {
+public:
+	/**
+	 * Linux system call semantics:
+	 *
+	 * Linux system call synopsis:
+	 *     // __NR_mq_open 240; <KernelRoot>/ipc/mqueue.c
+	 *     long sys_mq_open(char const *uname, int oflags, umode_t mode, struct mq_attr *uattr);
+	 *
+	 * Linux system headers:
+	 *
+	 * Glibc synopsis:
+	 *
+	 * Notes on Linux implementation:
+	 *
+	 */
+
+};
+
+class TraceAndMotitor {
+public:
+	/**
+	 * Linux system call semantics:
+	 *
+	 * Linux system call synopsis:
+	 *     // __NR_perf_event_open 298; <KernelRoot>/kernel/events/core.c
+	 *     long sys_perf_event_open(struct perf_event_attr *attr_uptr, pid_t pid, int cpu, int groupid, unsigned flags);
+	 *
+	 * Linux system headers:
+	 *
+	 * Glibc synopsis:
+	 *
+	 * Notes on Linux implementation:
+	 *
+	 */
+
 };
 
 }  // namespace posix
