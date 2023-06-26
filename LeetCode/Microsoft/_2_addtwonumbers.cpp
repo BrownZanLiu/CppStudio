@@ -92,6 +92,61 @@ TEST(TSLeetCodeMicrosoft, TCAddTwoNumbers)
 	EXPECT_EQ(s, t);
 }
 
+/**
+ * My solution on Leetcode.
+ * Date: 2023-06-27
+ * Speed performance: 8ms; better than 99.89%
+ * Memory usage: 69.6MB; better than 76%
+ */
+struct ListNode {
+	int val;
+	ListNode *next;
+	ListNode() : val(0), next(nullptr) {}
+	ListNode(int x) : val(x), next(nullptr) {}
+	ListNode(int x, ListNode *next) : val(x), next(next) {}
+};
+
+class Solution {
+public:
+	ListNode* addTwoNumbers(ListNode* l1, ListNode* l2) {
+		ListNode *vpResult = new ListNode();
+		ListNode *vpCur = vpResult;
+		ListNode *vpPrev = nullptr;
+		ListNode *vpA = l1;
+		ListNode *vpB = l2;
+		int vCarried = 0;
+		int vSum = 0;
+
+		while (vpA != nullptr || vpB != nullptr) {
+			vSum += vCarried;
+			vCarried = 0;
+			if (vpA != nullptr) {
+				vSum += vpA->val;
+				vpA = vpA->next;
+			}
+			if (vpB != nullptr) {
+				vSum += vpB->val;
+				vpB = vpB->next;
+			}
+			vCarried = vSum / 10;
+			vpCur->val = vSum % 10;
+			vpCur->next = new ListNode(vSum % 10);
+			vpPrev = vpCur;
+			vpCur = vpCur->next;
+			vSum = 0;
+		}
+
+		if (vCarried) {
+			vpCur->val = 1;
+		} else if (vpPrev != nullptr) {
+			vpPrev->next = nullptr;
+			delete vpCur;
+		}
+
+		return vpResult;
+	}
+};
+
 }  // namespace microsoft
 }  // namesapce leetcode
 }  // namespace liuzan
