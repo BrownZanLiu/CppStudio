@@ -143,7 +143,7 @@ public:
 class FileSystem {
 /**
  * Some conventions on comment Linux file system concepts:
- * 1) File handle: It's as known as file descriptor, a confusing name associated with the following
+ * 1) File descriptor: It's a confusing name associated with the following
  * file description. It's a per-process integer identifier of an open file. It's used to index
  * kernel file description in the open file table.
  * 2) File description: It's a kernel object for description of an open file. It's of 'struct file'.
@@ -180,8 +180,15 @@ public:
 
 	/**
 	 * Linux system call semantics:
-	 *     Open and possibly create a file.
-	 *     Return a new file descriptor or -1 no error
+	 *     Open and possibly create a file if the file doesn't exist and O_CREAT set in oflag.
+	 *     During execve, file operators won't be closed except if O_CLOEXEC set in oflag.
+	 *     Return a new file descriptor for subsequent usages on read/write/lseek/fcntl/... for efficiency. The kernel
+	 *     try to choose a smallest unused integer as the new file descriptor. A file descriptor is a reference to a
+	 *     file description which records file-accessing status such as offset, readahead, address_space loaded,
+	 *     writeback error, syncfs error and so on. This reference won't be effected by unlinking/renaming the pathname.
+	 *     The file offset is set the beginnning.
+	 *     See struct files_struct, struct fdtable, struct file, struct fd, etc.
+	 *
 	 *
 	 * Linux system call synopsis:
 	 *     // __NR_open 2; <KernelRoot>/fs/open.c
