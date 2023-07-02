@@ -96,7 +96,7 @@ TEST(TSLeetCode, TCLengthOfLongestSubstring)
  */
 class Solution {
 public:
-	int lengthOfLongestSubstring(string s) {
+	int lengthOfLongestSubstring(std::string s) {
 		constexpr int CHAR_SET_SIZE = 256;
 		std::array<char, CHAR_SET_SIZE> vHitMap;
 		int vMaxLen = 0;

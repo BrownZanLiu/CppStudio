@@ -57,6 +57,7 @@ void DynamicAssertInternal(bool isAsExpected, char const *msgFmt, Ts... args)
 		std::cerr << vMsg << std::endl;
 		std::abort();
 	} else if constexpr (mode == DynamicAssertMode::THROW_EXCEPTION) {
+		std::cerr << vMsg << std::endl;
 		throw DynamicAssertionFailure(std::move(vMsg));
 	} else {
 		throw std::logic_error("Invalid DynamicAssertMode");
@@ -75,6 +76,7 @@ void DynamicAssertInternal(bool isAsExpected, char const *msg)
 		std::cerr << vMsg << std::endl;
 		std::abort();
 	} else if constexpr (mode == DynamicAssertMode::THROW_EXCEPTION) {
+		std::cerr << vMsg << std::endl;
 		throw DynamicAssertionFailure(vMsg);
 	} else {
 		throw std::logic_error("Invalid DynamicAssertMode");
@@ -93,6 +95,7 @@ void DynamicAssertInternal(bool isAsExpected)
 		std::cerr << vMsg << std::endl;
 		std::abort();
 	} else if constexpr (mode == DynamicAssertMode::THROW_EXCEPTION) {
+		std::cerr << vMsg << std::endl;
 		throw DynamicAssertionFailure(vMsg);
 	} else {
 		throw std::logic_error("Invalid DynamicAssertMode");

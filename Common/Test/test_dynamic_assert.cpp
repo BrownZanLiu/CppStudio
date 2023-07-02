@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-#include <dynamic_assert.hpp>
+#include <dynamic_assert.h>
 #include <gtest/gtest.h>
 
 TEST(TSCommon, TCDynamicAssert)
