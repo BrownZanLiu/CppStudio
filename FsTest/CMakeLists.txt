@@ -1,25 +1,25 @@
 cmake_minimum_required(VERSION 3.20...3.26)
 
-file(GLOB CPPUSAGE_SRC "*.cc" "*.cpp" "*.cxx" "*.h" "*.hpp")
+file(GLOB FSTEST_SRC "*.cc" "*.cpp" "*.cxx" "*.h" "*.hpp")
 add_executable(
-	cppusage
-	${CPPUSAGE_SRC}
+	fstest
+	${FSTEST_SRC}
 )
 target_compile_features(
-	cppusage
+	fstest
 	PRIVATE
 	cxx_std_23
 )
 if (${COMPILER_SUITE} STREQUAL "gcc")
   	target_link_options(
-  		cppusage
+  		fstest
   		PRIVATE
   		-static-libgcc
   		-static-libstdc++
   	)
 	if (${MY_GCC_VERSION} VERSION_LESS "10.0.0")
 		target_link_libraries(
-			cppusage
+			fstest
 			# Gcc support for code generation of C++ error handling, RTTI, etc
 			/usr/local/gcc-${MY_GCC_VERSION}/lib/gcc/x86_64-pc-linux-gnu/${MY_GCC_VERSION}/libgcc_eh.a
 			# No shared version, so maybe ok to omitted
@@ -28,7 +28,7 @@ if (${COMPILER_SUITE} STREQUAL "gcc")
 	endif()
 endif()
 target_link_libraries(
-	cppusage
+	fstest
 	gtest_main
 	gmock_main
 	gflags_nothreads_static

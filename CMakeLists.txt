@@ -108,4 +108,5 @@ add_subdirectory(Common)
 add_subdirectory(CppUsage)
 add_subdirectory(DataStructruesAndAlgorithmsMadeEasy)
 add_subdirectory(LeetCode)
+add_subdirectory(FsTest)
 
