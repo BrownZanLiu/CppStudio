@@ -1,12 +1,16 @@
-#include <iostream>
-
 #include <gflags/gflags.h>
+#include <gtest/gtest.h>
 
-DEFINE_string(test_rootpath, "/mnt/fstest", "Specify the root directory where fstest will run.");
+#include "fstest_flags.h"
 
 int main(int argc, char **argv)
 {
-	std::cout << "Root directory to run fstest: " << FLAGS_test_rootpath << std::endl;
+	/**
+	 * Do modifications of flags before ParseCommandLineFlags().
+	 */
+	FLAGS_debug = true;
+	gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-	return 0;
+	testing::InitGoogleTest(&argc, argv);
+	return RUN_ALL_TESTS();
 }

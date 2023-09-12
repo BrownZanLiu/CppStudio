@@ -29,8 +29,8 @@ if (${COMPILER_SUITE} STREQUAL "gcc")
 endif()
 target_link_libraries(
 	fstest
-	gtest_main
-	gmock_main
+	gtest
+	gmock
 	gflags_nothreads_static
 	#grpc
 )
