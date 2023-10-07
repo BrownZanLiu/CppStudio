@@ -15,7 +15,7 @@
 // local headers
 #include "fstest_flags.h"
 
-TEST(ApiTest, CreateFile)
+TEST(GlibcApiTest, CreateFile)
 {
 	std::cout << "To be defined!" << std::endl;
 }
