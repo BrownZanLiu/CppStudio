@@ -1,15 +1,39 @@
 cmake_minimum_required(VERSION 3.20...3.26)
 
-file(GLOB FSTEST_SRC "*.cc" "*.cpp" "*.cxx" "*.h" "*.hpp")
+file(
+	GLOB FSTEST_SRC
+	"*.cc"
+	"*.cpp"
+	"*.cxx"
+	"*.h"
+	"*.hpp"
+)
+file(
+	GLOB LIBPOSIXFS_SRC
+	"../libposixfs/*.cc"
+	"../libposixfs/*.cpp"
+	"../libposixfs/*.cxx"
+	"../libposixfs/*.h"
+	"../libposixfs/*.hpp"
+)
 add_executable(
 	fstest
 	${FSTEST_SRC}
+	${LIBPOSIXFS_SRC}
 )
+
+target_include_directories (
+	fstest
+	PRIVATE
+	"../include"
+)
+
 target_compile_features(
 	fstest
 	PRIVATE
 	cxx_std_23
 )
+
 if (${COMPILER_SUITE} STREQUAL "gcc")
   	target_link_options(
   		fstest
@@ -27,11 +51,11 @@ if (${COMPILER_SUITE} STREQUAL "gcc")
 		)
 	endif()
 endif()
+
 target_link_libraries(
 	fstest
 	gtest
 	gmock
 	gflags_nothreads_static
-	#grpc
 )
 
