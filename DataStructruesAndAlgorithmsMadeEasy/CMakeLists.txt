@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.20...3.26)
 file(
 	GLOB
 	DSAAME_LINKEDLISTS_SRC
+	"RecursionAndBacktrack/*.cpp"
+	"RecursionAndBacktrack/*.h"
 	"LinkedLists/*.cpp"
 	"LinkedLists/*.cxx"
 	"LinkedLists/*.h"
