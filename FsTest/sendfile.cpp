@@ -20,7 +20,7 @@ namespace sendfile {
 void MakeTestDir(const std::string & root)
 {
 	std::string vTestDir = root + "/sendfile";
-	int dirFd = mkdir(vTestDir.str(), S_IRWXU);
+	int dirFd = mkdir(vTestDir.c_str(), S_IRWXU);
 	if (dirFd == 0 || errno == EEXIST) return;
 
 	throw std::string("FileSystem API exception: ") + strerror(errno);
