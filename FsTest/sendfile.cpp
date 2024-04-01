@@ -34,6 +34,6 @@ TEST(TSSendfile, TCSingleShot)
 {
 	using namespace liuzan::fstest::sendfile;
 
-	MakeTestDir(FLAGS_boot);
+	MakeTestDir(FLAGS_root);
 }
 
