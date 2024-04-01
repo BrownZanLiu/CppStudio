@@ -56,10 +56,10 @@ void CreateFilesUnderGivenDir(stdfs::path const & inParentDir, uint64_t inFileNu
 		stdfs::path vFilePath{inParentDir.string() + "_" + std::to_string(vFileCnt)};
 		vFileStream.open(vFilePath, stdios::out | stdios::noreplace);
 		if (!vFileStream.is_open()) {
-			EXPECT_FALSE(true) << "Failed to open " << vFilerPath;
+			EXPECT_FALSE(true) << "Failed to open " << vFilePath;
 			continue;
 		}
-		vFileStream << vFilerPath;
+		vFileStream << vFilePath;
 		vFileStream.close();
 	}
 }
