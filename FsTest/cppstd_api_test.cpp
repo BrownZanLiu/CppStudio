@@ -14,7 +14,7 @@
 
 /** ==== global alias ==== **/
 namespace stdfs = std::filesystem;
-namespace stdios = std::ios;
+using stdios = std::ios;
 
 TEST(CppStdApiTest, CreateFile)
 {
