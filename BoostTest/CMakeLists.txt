@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20...3.26)
+cmake_minimum_required(VERSION 3.1...3.26)
 file(GLOB BOOST_TESTS_SRC "*.cpp" "*.cxx" "*.h" "*.hpp")
 add_executable(
 	boost_tests
@@ -7,7 +7,7 @@ add_executable(
 target_compile_features(
 	boost_tests
 	PRIVATE
-	cxx_std_23
+	cxx_std_20
 )
 if (${COMPILER_SUITE} STREQUAL "gcc")
   	target_link_options(

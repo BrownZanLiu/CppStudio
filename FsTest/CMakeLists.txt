@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20...3.26)
+cmake_minimum_required(VERSION 3.1...3.26)
 
 file(
 	GLOB FSTEST_SRC
@@ -31,7 +31,7 @@ target_include_directories (
 target_compile_features(
 	fstest
 	PRIVATE
-	cxx_std_23
+	cxx_std_20
 )
 
 if (${COMPILER_SUITE} STREQUAL "gcc")

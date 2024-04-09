@@ -1,9 +1,19 @@
 #### MUST: Minimum version requirement for C++ ####
+# Minimum for C++14/C++11/C++98: cmake 3.1
+# Minimum for C++17: cmake 3.8
 # Minimum for C++20: cmake 3.12
 # Minimum for C++23: cmake 3.20
 # Minimum for C++26: cmake 3.25
+# For C++ support of compilers, see:
+#    https://en.cppreference.com/w/cpp/compiler_support
+#    https://en.cppreference.com/w/cpp/compiler_support/11
+#    https://en.cppreference.com/w/cpp/compiler_support/14
+#    https://en.cppreference.com/w/cpp/compiler_support/17
+#    https://en.cppreference.com/w/cpp/compiler_support/20
+#    https://en.cppreference.com/w/cpp/compiler_support/23
+#    https://en.cppreference.com/w/cpp/compiler_support/26
 #### MUST: Minimum version requirement for C++ ####
-cmake_minimum_required(VERSION 3.20...3.26)
+cmake_minimum_required(VERSION 3.1...3.26)
 
 #### MUST: setting project in top-level CMake file ####
 project(
@@ -74,7 +84,7 @@ add_executable(
 target_compile_features(
 	demo
 	PRIVATE
-	cxx_std_23
+	cxx_std_20
 )
 if (${COMPILER_SUITE} STREQUAL "gcc")
 	target_link_options(

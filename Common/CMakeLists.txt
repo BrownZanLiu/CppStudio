@@ -4,7 +4,7 @@
 #     Used to build test_common and liblzcom
 ########################################################################################################################
 
-cmake_minimum_required(VERSION 3.20...3.26)
+cmake_minimum_required(VERSION 3.1...3.26)
 
 file(
 	GLOB
@@ -36,7 +36,7 @@ target_include_directories(
 target_compile_features(
 	test_common
 	PRIVATE
-	cxx_std_23
+	cxx_std_20
 )
 if (${COMPILER_SUITE} STREQUAL "gcc")
   	target_link_options(
@@ -67,7 +67,7 @@ add_library(
 target_compile_features(
     liblzcom
 	PRIVATE
-	cxx_std_23
+	cxx_std_20
 )
 if (${COMPILER_SUITE} STREQUAL "gcc")
   	target_link_options(
