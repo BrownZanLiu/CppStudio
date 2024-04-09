@@ -22,7 +22,11 @@ TEST(CppStdApiTest, CreateFile)
 	vFileName = stdfs::absolute(vFileName);
 	std::cout << "Try to create a file: " << vFileName << std::endl;
 	std::fstream vFile;
+#if (CXX_STD_VER != 98 && CXX_STD_VER >= 23)
 	vFile.open(vFileName, stdios::out | stdios::noreplace);
+#else
+	vFile.open(vFileName, stdios::out);
+#endif
 	if (!vFile.is_open()) {
 		std::cout << "Failed to create an file: " << vFileName << std::endl;
 		return;
@@ -54,7 +58,11 @@ void CreateFilesUnderGivenDir(stdfs::path const & inParentDir, uint64_t inFileNu
 	std::ofstream vFileStream;
 	for(uint64_t vFileCnt = 0llu; vFileCnt < inFileNum; ++vFileCnt) {
 		stdfs::path vFilePath{inParentDir.string() + "_" + std::to_string(vFileCnt)};
+#if (CXX_STD_VER != 98 && CXX_STD_VER >= 23)
 		vFileStream.open(vFilePath, stdios::out | stdios::noreplace);
+#else
+		vFileStream.open(vFilePath, stdios::out);
+#endif
 		if (!vFileStream.is_open()) {
 			EXPECT_FALSE(true) << "Failed to open " << vFilePath;
 			continue;

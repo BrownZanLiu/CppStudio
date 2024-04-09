@@ -1,6 +1,0 @@
-#! /bin/bash
-
-cmake --build BuildClang --target clean
-cmake -S . -B BuildClang
-cmake --build BuildClang
-

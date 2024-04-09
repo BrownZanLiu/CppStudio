@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.1...3.26)
 
+set(MY_CXX_STD_VER 20)
+add_compile_definitions(CXX_STD_VER=${MY_CXX_STD_VER})
 file(
 	GLOB FSTEST_SRC
 	"*.cc"
@@ -31,7 +33,7 @@ target_include_directories (
 target_compile_features(
 	fstest
 	PRIVATE
-	cxx_std_20
+	cxx_std_${MY_CXX_STD_VER}
 )
 
 if (${COMPILER_SUITE} STREQUAL "gcc")

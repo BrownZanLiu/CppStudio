@@ -1,0 +1,46 @@
+#! /usr/bin/bash
+
+function usage() {
+	echo "Usage:"
+	echo "    build [-t|--target <exe|lib>] [-c|--clean-first] [-h|--help]"
+}
+
+function build_main() {
+	local vBuildTarget=""
+	local vCleanFirst=false
+	local vBuildCmd="cmake --build ."
+
+	for((i = 1; i <= $#; ++i)); do
+		case ${!i} in
+		'-t' | '--target')
+			((++i))
+			vBuildTarget=${!i}
+			;;
+		'-c' | '--clean-first')
+			vCleanFirst=true
+			;;
+		'-h' | '--help')
+			usage
+			return 0
+			;;
+		*)
+			usage
+			return 1
+			;;
+		esac
+	done
+
+	if [[ -n ${vBuildTarget} ]]; then
+		vBuildCmd="${vBuildCmd} --target ${vBuildTarget}"
+	fi
+
+	if ${vCleanFirst}; then
+		vBuildCmd="${vBuildCmd} --clean-first"
+	fi
+
+	echo "Try to run: ${vBuildCmd}"
+	${vBuildCmd}
+}
+
+build_main "$@"
+

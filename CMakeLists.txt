@@ -25,32 +25,8 @@ project(
 )
 
 #### Toolchain configurations ####
-set(COMPILER_SUITE "gcc"
-	CACHE PATH ""
-	FORCE
-)
-if (${COMPILER_SUITE} STREQUAL "gcc")
-	set(MY_GCC_VERSION "13.1.0")
-	# Following two sets will trigger cmake to identify the right toolchain, gcc/c++ standard header
-	# files and gcc/c++ static libraries. Shared libraries, such as libstdc++.so, will an exceptions.
-	set(CMAKE_C_COMPILER "/usr/local/gcc-${MY_GCC_VERSION}/bin/gcc-${MY_GCC_VERSION}"
-		CACHE PATH ""
-		FORCE
-	)
-	set(CMAKE_CXX_COMPILER "/usr/local/gcc-${MY_GCC_VERSION}/bin/g++-${MY_GCC_VERSION}"
-		CACHE PATH ""
-		FORCE
-	)
-else (${COMPILER_SUITE} STREQUAL "clang")
-	set(CMAKE_C_COMPILER "/usr/bin/clang"
-		CACHE PATH ""
-		FORCE
-	)
-	set(CMAKE_CXX_COMPILER "/usr/bin/clang++"
-		CACHE PATH ""
-		FORCE
-	)
-endif()
+# It's ineffective to set CMAKE_C|CXX_COMPILER here.
+# Do it with '-D CMAKE_TOOLCHAIN_FILE=<BuildDir>/toolchain_file.cmake'.
 
 #### Add github helper module ####
 # https://github.com/CLIUtils/cmake
