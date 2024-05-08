@@ -98,6 +98,47 @@ void ReadFile(int fd, char *buf, size_t len)
 	}
 }
 
+void *MemMap(MemMapArg &mapArg)
+{
+	void *va = mmap(mapArg.virtualAddrHint, mapArg.len, mapArg.prot, mapArg.flags, mapArg.fd, mapArg.off);
+	if (va != static_cast<void *>(MAP_FAILED)) {
+		return va;
+	}
+	throw std::string("FileSystem API exception triggered by MemMap: ") + strerror(errno);
+}
+
+void MemUnmap(MemUnmapArg &unmapArg)
+{
+	int vRc = munmap(unmapArg.virtualAddr, unmapArg.len);
+	if (vRc != 0) {
+		throw std::string("FileSystem API exception triggered by MemUnmap: ") + strerror(errno);
+	}
+}
+
+void MemSync(MemSyncArg &syncArg)
+{
+	int vRc = msync(syncArg.mapAddr, syncArg.mapLen, syncArg.flags);
+	if (vRc != 0) {
+		throw std::string("FileSystem API exception triggered by MemSync: ") + strerror(errno);
+	}
+}
+
+void MemLock(MemLockArg &lockArg)
+{
+	int vRc = mlock2(lockArg.virtualAddr, lockArg.len, lockArg.flags);
+	if (vRc != 0) {
+		throw std::string("FileSystem API exception triggered by MemLock: ") + strerror(errno);
+	}
+}
+
+void MemUnlock(MemUnlockArg &unlockArg)
+{
+	int vRc = munlock(unlockArg.virtualAddr, unlockArg.len);
+	if (vRc != 0) {
+		throw std::string("FileSystem API exception triggered by MemUnlock: ") + strerror(errno);
+	}
+}
+
 }  // namespace filesystem
 }  // namespace liuzan
 

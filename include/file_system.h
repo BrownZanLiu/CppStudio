@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <fcntl.h>  // open(), AT_*
 #include <string.h>  // strerror()
+#include <sys/mman.h>  // mmap(), munmap()
 #include <sys/sendfile.h>  // sendfile()
 #include <sys/stat.h>  // mkdir(), fstat(), mode_t
 #include <unistd.h>  // close()
@@ -95,6 +96,145 @@ void UnlinkPath(const std::string &filepath);
  */
 void WriteFile(int fd, const char *buf, size_t len);
 void ReadFile(int fd, char *buf, size_t len);
+
+struct MemMapArg {
+	MemMapArg(int _fd, int _flags, int _prot, size_t _len, off_t _off = 0, void *_vaHint = nullptr)
+		: fd(_fd), flags(_flags), prot(_prot), len(_len), off(_off), virtualAddrHint(_vaHint)
+	{}
+
+	void *virtualAddrHint;
+	/**
+	 * If it's nullptr, OS will choose a page-aligned virtual address.
+	 */
+	int fd;
+	int flags;
+	/**
+	 * Exclusive flags for sharing or writeback:
+	 *     -MAP_SHARED: Updates visible to other process and will be written back to underlying file if has one; use
+	 *     msync() to write back immediately. POSIX.
+	 *	   -MAP_SHARED_VALIDATE: Same as MAP_SHARED except that it will fail out with EOPNOTSUPP. Some flags need it to
+	 *	   work. MAP_SYNC is such one. This is a linux extension.
+	 *	   -MAP_PRIVATE: Create a copy-on-write mapping. Updates invisible to other process and won't be written back to
+	 *	   underlying file even if hase one. And, file updates might invisible after mapping done. POSIX.
+	 * Other flags could be Ored to above:
+	 *     -MAP_ANONYMOUS|MAP_ANON: No file-backed mapping. Initialized to zero. Offset must be zero. fd should be -1
+	 *     for best compatibility. Supported by most other UNIX-like systems.
+	 *     -MAP_FIXED: Consider 'virtualAddrHint' as a forcement. Page alignment is still required. Existing mapping[s]
+	 *     will be discarded if possible. mmap() will fail if alignment exception, discard failure, invalid addr, etc.
+	 *     POSIX.
+	 *     -MAP_FIXED_NOREPLACE: Same as MAP_FIXED except that will fail out with EEXIST instead of discarding existing
+	 *     mapping[s]. In a process, only one thread could atomically map the given region with other threads. Before
+	 *     Linux 4.17, it might fall back to non-MAP_FIXED version. So, check the return address for portability.
+	 *     -MAP_GROWSDOWN: Used for stack. Return an address one-page-lower than the actually allocated process virtual
+	 *     address space. The return address is the starting address of a 'guard' page. When any address in this guard
+	 *     page is touched, the mmaping is extended downward. If the extension encounter an existing mapping, SIGSEGV
+	 *     will be triggered.
+	 *     -MAP_HUGETLB: Allocate the mapping using 'huge' pages.
+	 *     -MAP_HUGE_2MB|MAP_HUGE_1GB: Used with MAP_HUGETLB to select hugepage size.
+	 *     -MAP_LOCKED: Mark the mapped region to be locked in the same way as mlock(). Try to populate mapping region
+	 *     as mlock(). However, mmap won't fail with ENOMEM as mlock(). So, it's possible to experience major fault
+	 *     after mmap(). If we expect all done as expected or fail, use mmap() plus mlock().
+	 *     -MAP_NONBLOCK: Just meaningful with MAP_POPULATE. Now, it'll make MAP_POPULATE to be ignored. Don't
+	 *     read-ahead and create page tables entries only for pages that are already present in RAM.
+	 *     -MAP_POPULATE: Populate (prefault) page tables for a mapping. For a file mapping, this causes read-ahead on
+	 *     the file. This will help to reduce blocking on page faults later. The mmap() call doesn't fail if the mapping
+	 *     cannot be populated.
+	 *     -MAP_NORESERVE: Do not reserve swap space for this mapping. When swap space is not reserved one might get
+	 *     SIGSEGV upon a write if no physical memory is available.
+	 *     -MAP_SYNC: Only valid for DAX(direct mapping of persistent memory) file system. Must Ored with
+	 *     MAP_SHARED_VALIDATE. EOPNOTSUPP reported by mmap() if used on non-DAX file.
+	 *     -MAP_UNINITIALIZED: Don't clear anonymous pages. This flag is intended to improve performance on embedded
+	 *     devices. This flag is honored only if the kernel was configured with the CONFIG_MMAP_ALLOW_UNINITIALIZED
+	 *     option.
+	 */
+	off_t off;
+	/**
+	 * Should be page-aligned or hugepage-aligned.
+	 */
+	size_t len;
+	int prot;
+	/**
+	 * Memory protection of mapping: PROT_EXEC | PROT_READ | PROT_WRITE | PROT_NONE
+	 * Must not conflict with file open mode.
+	 */
+
+	/** ==== extention ====
+	 * Statistics per file system?
+	 */
+};
+void *MemMap(MemMapArg &mapArg);
+/**
+ * Creates a new mapping[vm_area_struct] in the virtual address space of the calling process.
+ * Return MAP_FAILED(-1) if failed.
+ * No file size modification will be synchronized to backing file even we have one.
+ */
+
+struct MemUnmapArg {
+	MemUnmapArg(void *_va, size_t _len): virtualAddr(_va), len(_len) {}
+
+	void *virtualAddr;  // Returned by MemMap().
+	size_t len;
+	/**
+	 * In MAP_HUGETLB, it's needed to be hugepage-alined.
+	 */
+
+	/** ==== extention ====
+	 * Statistics per file system?
+	 */
+};
+void MemUnmap(MemUnmapArg &unmapArg);
+/**
+ * Make access on [virtualAddr, virtualAddr+len] to trigger SIGSEGV.
+ * It's OK if no mapping on [virtualAddr, virtualAddr+len].
+ * Process termination could also delete the target mapping if no unmapping done.
+ * Closing file won't delete mapping[s].
+ * This will guarantee dirty pages written back to file. See msync().
+ */
+
+struct MemSyncArg {
+	MemSyncArg(void *_va, size_t _len, int _flags): mapAddr(_va), mapLen(_len), flags(_flags) {}
+
+	void *mapAddr;
+	size_t mapLen;
+	int flags;
+	/**
+	 * Exclusive flags for flushing behavior:
+	 *     -MS_ASYNC: Specifies that an update be scheduled, but the call returns immediately.
+	 *     -MS_SYNC: Requests an update and waits for it to complete.
+	 * Other flags could be Ored with above:
+	 *     -MS_INVALIDATE: Asks to invalidate other mappings of the same file so that that they can be updated with the
+	 *     fresh values just written.
+	 */
+};
+void MemSync(MemSyncArg &syncArg);
+/**
+ * Flush changes to backing file.
+ * Exception throw if failed.
+ */
+
+struct MemLockArg {
+	MemLockArg(const void *_va, size_t _len, unsigned int _flags = 0)
+		: virtualAddr(_va), len(_len), flags(_flags)
+	{}
+
+	const void *virtualAddr;
+	size_t len;
+	unsigned int flags;
+	/**
+	 * 0, fault-in all pages and lock them in memory to avoid swapping-out.
+	 * MLOCK_ONFAULT, Lock pages that are currently resident and mark the entire range so that the
+	 * remaining nonresident pages are locked when they are populated by a page fault.
+	 */
+};
+void MemLock(MemLockArg &lockArg);
+
+struct MemUnlockArg {
+	MemUnlockArg(const void *_va, size_t _len): virtualAddr(_va), len(_len) {}
+
+	const void *virtualAddr;
+	size_t len;
+};
+void MemUnlock(MemUnlockArg &unlockArg);
 
 }  // namespace filesystem
 }  // namespace liuzan
