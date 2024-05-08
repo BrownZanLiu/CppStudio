@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.1...3.26)
 
 set(MY_CXX_STD_VER 20)
 add_compile_definitions(CXX_STD_VER=${MY_CXX_STD_VER})
+
 file(
 	GLOB FSTEST_SRC
 	"*.cc"

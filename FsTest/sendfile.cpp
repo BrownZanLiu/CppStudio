@@ -61,7 +61,7 @@ TEST(TSSendfile, TCSingleShot)
 {
 	using namespace liuzan::fstest;
 
-	const int PAGES_TO_WRITE = PAGES_PER_GIGA;
+	const int PAGES_TO_WRITE = FLAGS_filesize / BYTES_PER_PAGE;
 
 	try {
 		std::string vTestDir = FLAGS_root + "/sendfile";
@@ -92,7 +92,17 @@ TEST(TSSendfile, TCSingleShot)
 		int vDestFd = CreateFile(vDestFile, O_TRUNC | O_WRONLY, vSrcStat.st_mode);
 
 		std::cout << NowString() << "Try to send " << vSourceFile << " to " << vDestFile << std::endl;
-		SendFile(vDestFd, vSrcFd, nullptr, vSrcStat.st_size);
+		off_t vOffset = 0;
+		size_t vPages2Write = PAGES_TO_WRITE;
+		while (vPages2Write > 0) {
+			if (vPages2Write >= PAGES_PER_GIGA) {
+				SendFile(vDestFd, vSrcFd, &vOffset, BYTES_PER_PAGE * PAGES_PER_GIGA);
+				vPages2Write -= PAGES_PER_GIGA;
+			} else {
+				SendFile(vDestFd, vSrcFd, &vOffset, BYTES_PER_PAGE * vPages2Write);
+				vPages2Write = 0;
+			}
+		}
 
 		std::cout << NowString() << "Try to close fd: " << vDestFd << std::endl;
 		CloseFd(vDestFd);
@@ -111,7 +121,7 @@ TEST(TSSendfile, TCReadWrite4PerfCompare)
 {
 	using namespace liuzan::fstest;
 
-	const int PAGES_TO_WRITE = PAGES_PER_GIGA;
+	const int PAGES_TO_WRITE = FLAGS_filesize / BYTES_PER_PAGE;
 	char page_bytes[BYTES_PER_PAGE];
 	for (int i = 0; i < BYTES_PER_PAGE; ++i) {
 		page_bytes[i] = 'x';

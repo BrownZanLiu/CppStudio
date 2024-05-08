@@ -5,7 +5,9 @@
 
 // system headers
 #include <fcntl.h>  // Definition of O_* and S_* constants
+#if (LINUX_KERNEL_MAJOR >= 5) && (LINUX_KERNEL_MINOR >= 6)
 #include <linux/openat2.h>  // Definition of RESOLVE_* constants
+#endif
 #include <sys/syscall.h>  // Definition of SYS_* constants
 #include <unistd.h>
 

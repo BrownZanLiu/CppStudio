@@ -31,6 +31,18 @@ project(
 #### Add github helper module ####
 # https://github.com/CLIUtils/cmake
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+	execute_process(
+		COMMAND bash -c "uname -r"
+		OUTPUT_VARIABLE LINUX_KERNEL_VERSION
+	)
+	string(REGEX REPLACE "([0-9]+\.[0-9]+)\..*" "\\1" LINUX_KERNEL_VERSION ${LINUX_KERNEL_VERSION})
+	string(REGEX REPLACE "([0-9]+)\.([0-9]+)" "\\1" LINUX_KERNEL_MAJOR ${LINUX_KERNEL_VERSION})
+	string(REGEX REPLACE "([0-9]+)\.([0-9]+)" "\\2" LINUX_KERNEL_MINOR ${LINUX_KERNEL_VERSION})
+	message(${LINUX_KERNEL_MAJOR}.${LINUX_KERNEL_MINOR})
+	add_compile_definitions(LINUX_KERNEL_MAJOR=${LINUX_KERNEL_MAJOR})
+	add_compile_definitions(LINUX_KERNEL_MINOR=${LINUX_KERNEL_MINOR})
+endif()
 
 #### Fetch external package ####
 include(FetchContent)
