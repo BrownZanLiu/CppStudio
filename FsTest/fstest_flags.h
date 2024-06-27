@@ -5,8 +5,8 @@
 
 /** ==== General flags ==== **/
 DECLARE_bool(debug);
-DECLARE_bool(shareddir);
 DECLARE_string(root);
+DECLARE_string(logroot);
 DECLARE_string(pathname);
 DECLARE_uint32(jobnum);
 DECLARE_uint32(treedepth);

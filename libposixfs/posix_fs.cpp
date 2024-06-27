@@ -1,7 +1,12 @@
+#include <chrono>  // std::chrono::steady_clock
+#include <system_error>
+
 #include <file_system.h>
 
 namespace liuzan {
 namespace filesystem {
+
+FsIOStatics gFsIoStatics;
 
 void MakeDir(const std::string &dirpath, mode_t mkFlags)
 {
@@ -136,6 +141,60 @@ void MemUnlock(MemUnlockArg &unlockArg)
 	int vRc = munlock(unlockArg.virtualAddr, unlockArg.len);
 	if (vRc != 0) {
 		throw std::string("FileSystem API exception triggered by MemUnlock: ") + strerror(errno);
+	}
+}
+
+void MkDir(MkDirArg &mkdirArg)
+{
+	using namespace std::literals;
+
+	const auto vTpStart = std::chrono::steady_clock::now();
+	int vRc = mkdirat(mkdirArg.parentDirFd, mkdirArg.pathname.c_str(), mkdirArg.mode);
+	const auto vTpEnd = std::chrono::steady_clock::now();
+
+	if (vRc != 0 && (errno != EEXIST || !(mkdirArg.flags & MkDirArg::IGNORE_EEXIST))) {
+		throw std::system_error(errno, std::system_category(), "FileSystem API exception triggered by MkDir");
+	} else if (mkdirArg.fsIoStat != nullptr) {
+		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
+		mkdirArg.fsIoStat->IncOperations(filesystem_operation_id::MKDIR);
+		mkdirArg.fsIoStat->AddMeasure(filesystem_operation_id::MKDIR, vUs);
+	}
+}
+
+void RmDir(RmDirArg &rmdirArg)
+{
+	using namespace std::literals;
+
+	const auto vTpStart = std::chrono::steady_clock::now();
+	int vRc = rmdir(rmdirArg.pathname.c_str());
+	const auto vTpEnd = std::chrono::steady_clock::now();
+
+	if (vRc != 0) {
+		throw std::system_error(errno, std::system_category(), "FileSystem API exception triggered by RmDir");
+	} else if (rmdirArg.fsIoStat != nullptr) {
+		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
+		rmdirArg.fsIoStat->IncOperations(filesystem_operation_id::RMDIR);
+		rmdirArg.fsIoStat->AddMeasure(filesystem_operation_id::RMDIR, vUs);
+	}
+}
+
+void Rename(RenameArg &renameArg)
+{
+	using namespace std::literals;
+
+	const auto vTpStart = std::chrono::steady_clock::now();
+	int vRc = renameat2(renameArg.oldParentDirFd, renameArg.oldPathname.c_str(),
+			            renameArg.newParentDirFd, renameArg.newPathname.c_str(),
+						renameArg.flags);
+	const auto vTpEnd = std::chrono::steady_clock::now();
+	const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart).count() * 1000000ul);
+
+	if (vRc != 0) {
+		throw std::system_error(errno, std::system_category(), "FileSystem API exception triggered by Rename");
+	} else if (renameArg.fsIoStat != nullptr) {
+		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
+		renameArg.fsIoStat->IncOperations(filesystem_operation_id::RENAME);
+		renameArg.fsIoStat->AddMeasure(filesystem_operation_id::RENAME, vUs);
 	}
 }
 

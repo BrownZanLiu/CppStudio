@@ -5,11 +5,14 @@
 
 #include <errno.h>
 #include <fcntl.h>  // open(), AT_*
+#include <stdio.h>  // rename*()
 #include <string.h>  // strerror()
 #include <sys/mman.h>  // mmap(), munmap()
 #include <sys/sendfile.h>  // sendfile()
 #include <sys/stat.h>  // mkdir(), fstat(), mode_t
-#include <unistd.h>  // close()
+#include <unistd.h>  // close(), rmdir()
+
+#include <perf.h>  // filesystem_operation_id/FsIOStatics
 
 namespace liuzan {
 namespace filesystem {
@@ -71,6 +74,8 @@ constexpr uint32_t BYTES_PER_MEGA = 1024u * 1024u;
 constexpr uint32_t PAGES_PER_MEGA = BYTES_PER_MEGA / BYTES_PER_PAGE;
 constexpr uint32_t BYTES_PER_GIGA = 1024u * 1024u * 1024u;
 constexpr uint32_t PAGES_PER_GIGA = BYTES_PER_GIGA / BYTES_PER_PAGE;
+
+extern FsIOStatics gFsIoStatics;
 
 /**** For surprise, all APIs throw std::string message. ****/
 void MakeDir(const std::string &dirpath, mode_t mkFlags);
@@ -235,6 +240,76 @@ struct MemUnlockArg {
 	size_t len;
 };
 void MemUnlock(MemUnlockArg &unlockArg);
+
+struct MkDirArg {
+	explicit MkDirArg(const std::string &_path,
+			int _flags = 0,
+			int _parentDirFd = AT_FDCWD,
+			mode_t _mode = S_IRWXU | S_IRWXG,
+			FsIOStatics *_fsIoStat = &gFsIoStatics)
+		: parentDirFd(_parentDirFd), flags(_flags), pathname(_path), mode(_mode), fsIoStat(_fsIoStat)
+	{
+		if (flags & NO_ACCOUNTING) {
+			_fsIoStat = nullptr;
+		}
+	}
+
+	FsIOStatics *fsIoStat;
+	std::string pathname;
+	int parentDirFd;
+	mode_t mode;
+	/**
+	 * Without ACL enabled, effective mode >= (mode & 0777 & ~process_umask)
+	 * See 'enum create_mode' above.
+	 */
+	int flags;
+	enum mkdir_arg_flags {
+		IGNORE_EEXIST = 1 << 0,
+		NO_ACCOUNTING = 1 << 1,
+	};
+};
+void MkDir(MkDirArg &mkdirArg);
+
+struct RmDirArg {
+	explicit RmDirArg(const std::string &_path, FsIOStatics *_fsIoStat = &gFsIoStatics)
+		: pathname(_path), fsIoStat(_fsIoStat)
+	{}
+
+	std::string pathname;
+	FsIOStatics *fsIoStat;
+};
+void RmDir(RmDirArg &rmdirArg);
+
+struct RenameArg {
+	RenameArg(int _oldParentFd, std::string _oldPathname,
+			  int _newParentFd, std::string _newPathname,
+			  unsigned int _flags = 0u,
+			  FsIOStatics *_fsIoStat = &gFsIoStatics)
+		: oldParentDirFd(_oldParentFd), oldPathname(_oldPathname),
+		  newParentDirFd(_newParentFd), newPathname(_newPathname),
+		  flags(_flags), fsIoStat(_fsIoStat)
+	{}
+
+	int oldParentDirFd;
+	int newParentDirFd;
+	std::string oldPathname;
+	std::string newPathname;
+	unsigned int flags;
+	/**
+	 * Only supported by renameat2().
+	 * Falgs supported:
+	 * -RENAME_EXCHANGE, atomically exchange oldPathname and newPathname.
+	 * -RENAME_NOREPLACE, don't overwrite newPathname if it exists as usually do.
+	 * -RENAME_WHITEOUT, only meaningful for overlay/union filesystem.
+	 */
+	FsIOStatics *fsIoStat;
+};
+void Rename(RenameArg &renameArg);
+/**
+ * Rename a file system dentry or move an dentry into another location in the same file system tree.
+ * If the new place has a dentry with the target name, try to delete it first.
+ * It's impossible to move a dentry into its descendant directory.
+ */
 
 }  // namespace filesystem
 }  // namespace liuzan

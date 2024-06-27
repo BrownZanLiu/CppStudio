@@ -18,7 +18,7 @@ using stdios = std::ios;
 
 TEST(CppStdApiTest, CreateFile)
 {
-	stdfs::path vFileName{FLAGS_pathname};
+	stdfs::path vFileName = FLAGS_pathname.length() != 0 ? FLAGS_pathname : "/tmp/testfile";
 	vFileName = stdfs::absolute(vFileName);
 	std::cout << "Try to create a file: " << vFileName << std::endl;
 	std::fstream vFile;
@@ -37,7 +37,7 @@ TEST(CppStdApiTest, CreateFile)
 
 TEST(CppStdApiTest, DeleteFile)
 {
-	stdfs::path vFileName{FLAGS_pathname};
+	stdfs::path vFileName = FLAGS_pathname.length() != 0 ? FLAGS_pathname : "/tmp/testfile";
 	vFileName = stdfs::absolute(vFileName);
 	std::error_code vEc;
 	bool vSucceded;

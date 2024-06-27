@@ -8,7 +8,8 @@ int main(int argc, char **argv)
 	/**
 	 * Do modifications of flags before ParseCommandLineFlags().
 	 */
-	FLAGS_debug = true;
+	//FLAGS_debug = true;
+
 	gflags::ParseCommandLineFlags(&argc, &argv, true);
 
 	testing::InitGoogleTest(&argc, argv);

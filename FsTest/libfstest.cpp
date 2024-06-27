@@ -5,6 +5,9 @@
 
 #include <file_system.h>
 
+#include "libfstest.h"
+#include "fstest_flags.h"
+
 namespace liuzan {
 namespace fstest {
 
@@ -23,6 +26,20 @@ std::string NowString()
 	std::ostringstream vNowString;
 	vNowString << "[" << vNow << "]";
 	return vNowString.str();
+}
+
+std::string GetTestRootDir()
+{
+	std::string vDir2Mk;
+	if (FLAGS_root.length() == 0) {
+		vDir2Mk = "/tmp/fstest";
+	} else {
+		vDir2Mk = FLAGS_root + "/fstest";
+	}
+	MkDirArg vArg(vDir2Mk, MkDirArg::IGNORE_EEXIST | MkDirArg::NO_ACCOUNTING);
+	MkDir(vArg);
+
+	return vDir2Mk;
 }
 
 void * GetPageData(uint32_t pageNum)

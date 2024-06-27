@@ -18,6 +18,8 @@ SystemTime Now();
 
 std::string NowString();
 
+std::string GetTestRootDir();
+
 void * GetPageData(uint32_t pageNum);
 
 void WritePage(int fd, uint32_t pageIndex);
