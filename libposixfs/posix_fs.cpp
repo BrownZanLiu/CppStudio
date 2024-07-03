@@ -130,7 +130,11 @@ void MemSync(MemSyncArg &syncArg)
 
 void MemLock(MemLockArg &lockArg)
 {
+#if defined(GLIBC_HAS_MLOCK2)
 	int vRc = mlock2(lockArg.virtualAddr, lockArg.len, lockArg.flags);
+#else
+	int vRc = mlock(lockArg.virtualAddr, lockArg.len);
+#endif
 	if (vRc != 0) {
 		throw std::string("FileSystem API exception triggered by MemLock: ") + strerror(errno);
 	}
@@ -183,9 +187,14 @@ void Rename(RenameArg &renameArg)
 	using namespace std::literals;
 
 	const auto vTpStart = std::chrono::steady_clock::now();
+#if defined(GLIBC_HAS_RENAMEAT2)
 	int vRc = renameat2(renameArg.oldParentDirFd, renameArg.oldPathname.c_str(),
 			            renameArg.newParentDirFd, renameArg.newPathname.c_str(),
 						renameArg.flags);
+#else
+	int vRc = renameat(renameArg.oldParentDirFd, renameArg.oldPathname.c_str(),
+			            renameArg.newParentDirFd, renameArg.newPathname.c_str());
+#endif
 	const auto vTpEnd = std::chrono::steady_clock::now();
 	const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart).count() * 1000000ul);
 
