@@ -1,0 +1,5 @@
+#! /usr/bin/bash
+
+gBuildPath=$(realpath $0)
+gBuildPath=${gBuildPath%/*}
+cmake -D CMAKE_TOOLCHAIN_FILE=./toolchain_file.cmake -S ${gBuildPath}/..  -B ${gBuildPath}
