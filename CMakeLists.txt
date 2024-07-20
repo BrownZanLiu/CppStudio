@@ -31,6 +31,7 @@ project(
 #### Add github helper module ####
 # https://github.com/CLIUtils/cmake
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+message("CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 	execute_process(
 		COMMAND bash -c "uname -r"
@@ -39,9 +40,31 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 	string(REGEX REPLACE "([0-9]+\.[0-9]+)\..*" "\\1" LINUX_KERNEL_VERSION ${LINUX_KERNEL_VERSION})
 	string(REGEX REPLACE "([0-9]+)\.([0-9]+)" "\\1" LINUX_KERNEL_MAJOR ${LINUX_KERNEL_VERSION})
 	string(REGEX REPLACE "([0-9]+)\.([0-9]+)" "\\2" LINUX_KERNEL_MINOR ${LINUX_KERNEL_VERSION})
-	message(${LINUX_KERNEL_MAJOR}.${LINUX_KERNEL_MINOR})
+	message("Linux kernel version: ${LINUX_KERNEL_VERSION}")
+
 	add_compile_definitions(LINUX_KERNEL_MAJOR=${LINUX_KERNEL_MAJOR})
 	add_compile_definitions(LINUX_KERNEL_MINOR=${LINUX_KERNEL_MINOR})
+
+	execute_process(
+		COMMAND bash -c "ldd --version | grep ldd | awk '{print $4}' | awk -F - '{print $1}'"
+		OUTPUT_VARIABLE LINUX_GLIBC_VERSION
+	)
+	message("Linux glibc version: ${LINUX_GLIBC_VERSION}")
+
+	if (${LINUX_KERNEL_VERSION} VERSION_GREATER_EQUAL "4.4" AND
+	    ${LINUX_GLIBC_VERSION} VERSION_GREATER_EQUAL "2.27")
+		add_compile_definitions(GLIBC_HAS_MLOCK2=1)
+		message("Linux glibc has mlock2().")
+	else()
+		message("Linux glibc has no mlock2().")
+	endif()
+	if (${LINUX_KERNEL_VERSION} VERSION_GREATER_EQUAL "3.15" AND
+	    ${LINUX_GLIBC_VERSION} VERSION_GREATER_EQUAL "2.28")
+		add_compile_definitions(GLIBC_HAS_RENAMEAT2=1)
+		message("Linux glibc has renameat2().")
+	else()
+		message("Linux glibc has no renameat2().")
+	endif()
 endif()
 
 #### Fetch external package ####

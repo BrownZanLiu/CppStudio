@@ -131,8 +131,10 @@ void MemSync(MemSyncArg &syncArg)
 void MemLock(MemLockArg &lockArg)
 {
 #if defined(GLIBC_HAS_MLOCK2)
+#pragma message "The glibc has mlock2, use mlock2()."
 	int vRc = mlock2(lockArg.virtualAddr, lockArg.len, lockArg.flags);
 #else
+#warning "The glibc has no mlock2, use mlock()!"
 	int vRc = mlock(lockArg.virtualAddr, lockArg.len);
 #endif
 	if (vRc != 0) {
@@ -188,10 +190,12 @@ void Rename(RenameArg &renameArg)
 
 	const auto vTpStart = std::chrono::steady_clock::now();
 #if defined(GLIBC_HAS_RENAMEAT2)
+#pragma message "The glibc has renameat2(), use renameat2()."
 	int vRc = renameat2(renameArg.oldParentDirFd, renameArg.oldPathname.c_str(),
 			            renameArg.newParentDirFd, renameArg.newPathname.c_str(),
 						renameArg.flags);
 #else
+#warning "The glibc has no renameat2(), use renameat()!"
 	int vRc = renameat(renameArg.oldParentDirFd, renameArg.oldPathname.c_str(),
 			            renameArg.newParentDirFd, renameArg.newPathname.c_str());
 #endif
