@@ -5,48 +5,13 @@ function usage() {
 	echo "    build [-t|--target <exe|lib>] [-c|--clean-first] [-h|--help]"
 }
 
-function version_ge() {
-	local vLeftVerIds=($(echo "$1" | awk -F . '{print $1" "$2}'))
-	local vRightVerIds=($(echo "$2" | awk -F . '{print $1" "$2}'))
-
-	if [[ ${vLeftVerIds[0]} -gt ${vRightVerIds[0]} ]]; then
-		echo 'true'
-		return
-	elif [[ ${vLeftVerIds[0]} -lt ${vRightVerIds[0]} ]]; then
-		echo 'false'
-		return
-	fi
-
-	if [[ ${vLeftVerIds[1]} -gt ${vRightVerIds[1]} ]]; then
-		echo 'true'
-		return
-	elif [[ ${vLeftVerIds[1]} -lt ${vRightVerIds[1]} ]]; then
-		echo 'false'
-		return
-	fi
-
-	echo 'true'
-}
-
 function build_main() {
 	local vBuildTarget=""
 	local vCleanFirst=false
-	local vBuildCmd="cmake"
 	local vGlibcVer=$(ldd --version | grep "libc" | awk '{print $4}')
 	local vKernelVer=$(uname -r)
-	vKernelVer=${vKernelVer%%-*}
-	if [[ $(version_ge ${vGlibcVer} "2.27") == 'true' &&
-	      $(version_ge ${vKernelVer} "4.4") == 'true' ]]; then
-		vBuildCmd="${vBuildCmd} -D GLIBC_HAS_MLOCK2"
-	fi
-	if [[ $(version_ge ${vGlibcVer} "2.28") == 'true' &&
-	      $(version_ge ${vKernelVer} "3.15") == 'true' ]]; then
-		vBuildCmd="${vBuildCmd} -D GLIBC_HAS_RENAMEAT2"
-	fi
-
 	local vBuildPath=$(dirname $(realpath $0))
-	vBuildCmd="${vBuildCmd} --build ${vBuildPath}"
-
+	vKernelVer=${vKernelVer%%-*}
 	for((i = 1; i <= $#; ++i)); do
 		case ${!i} in
 		'-t' | '--target')
@@ -67,6 +32,8 @@ function build_main() {
 		esac
 	done
 
+	local vBuildCmd="cmake"
+	vBuildCmd="${vBuildCmd} --build ${vBuildPath}"
 	if [[ -n ${vBuildTarget} ]]; then
 		vBuildCmd="${vBuildCmd} --target ${vBuildTarget}"
 	fi

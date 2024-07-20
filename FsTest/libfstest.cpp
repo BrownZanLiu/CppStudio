@@ -1,7 +1,10 @@
 #include <chrono>  // std::time_point
 #include <cstdint>  // uint64_t
+#include <ctime>  // std::time_t, std::tm, std::localtime()
 #include <iostream>
+#include <iomanip>  // std::put_time()
 #include <string>
+#include <sstream>  // std::ostringstream
 
 #include <file_system.h>
 
@@ -22,9 +25,10 @@ SystemTime Now()
 
 std::string NowString()
 {
-	auto vNow = Now();
+	SystemTime vNow = Now();
+	std::time_t vTime = SystemClock::to_time_t(vNow);
 	std::ostringstream vNowString;
-	vNowString << "[" << vNow << "]";
+	vNowString << "[" << std::put_time(std::localtime(&vTime), "%F %T") << "]";
 	return vNowString.str();
 }
 
