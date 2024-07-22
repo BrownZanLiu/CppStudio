@@ -18,7 +18,8 @@ TEST(TSSendfile, TCSingleShot)
 {
 	using namespace liuzan::fstest;
 
-	const int PAGES_TO_WRITE = FLAGS_filesize / BYTES_PER_PAGE;
+	const int PAGES_TO_WRITE = (FLAGS_filesize == 0 ? BYTES_PER_GIGA : FLAGS_filesize)
+				   / BYTES_PER_PAGE;
 
 	try {
 		std::string vTestDir = FLAGS_root + "/sendfile";
@@ -31,12 +32,14 @@ TEST(TSSendfile, TCSingleShot)
 		int vSrcFd = CreateFile(vSourceFile, O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
 
 		std::cout << NowString()
-			      << "Try to writing " << PAGES_TO_WRITE << " pages into file: " << vSourceFile << std::endl;
+			  << "Try to writing " << PAGES_TO_WRITE
+                          << " pages into file: " << vSourceFile << std::endl;
 		for (uint32_t pi = 0; pi < PAGES_TO_WRITE; ++pi) {
 			WritePage(vSrcFd, pi);
 		}
 
-		std::cout << NowString() << "Try to close and reopen file: " << vSourceFile << std::endl;
+		std::cout << NowString()
+                          << "Try to close and reopen file: " << vSourceFile << std::endl;
 		CloseFd(vSrcFd);
 		vSrcFd = OpenPath(vSourceFile, O_RDONLY);
 
@@ -48,7 +51,8 @@ TEST(TSSendfile, TCSingleShot)
 		std::cout << NowString() << "Try to create file: " << vDestFile << std::endl;
 		int vDestFd = CreateFile(vDestFile, O_TRUNC | O_WRONLY, vSrcStat.st_mode);
 
-		std::cout << NowString() << "Try to send " << vSourceFile << " to " << vDestFile << std::endl;
+		std::cout << NowString()
+                          << "Try to send " << vSourceFile << " to " << vDestFile << std::endl;
 		off_t vOffset = 0;
 		size_t vPages2Write = PAGES_TO_WRITE;
 		while (vPages2Write > 0) {
@@ -78,7 +82,8 @@ TEST(TSSendfile, TCReadWrite4PerfCompare)
 {
 	using namespace liuzan::fstest;
 
-	const int PAGES_TO_WRITE = FLAGS_filesize / BYTES_PER_PAGE;
+	const int PAGES_TO_WRITE = (FLAGS_filesize == 0 ? BYTES_PER_GIGA : FLAGS_filesize)
+				   / BYTES_PER_PAGE;
 	char page_bytes[BYTES_PER_PAGE];
 	for (int i = 0; i < BYTES_PER_PAGE; ++i) {
 		page_bytes[i] = 'x';
@@ -95,12 +100,14 @@ TEST(TSSendfile, TCReadWrite4PerfCompare)
 		int vSrcFd = CreateFile(vSourceFile, O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
 
 		std::cout << NowString()
-			      << "Try to writing " << PAGES_TO_WRITE << " pages into file: " << vSourceFile << std::endl;
+			  << "Try to writing " << PAGES_TO_WRITE
+                          << " pages into file: " << vSourceFile << std::endl;
 		for (uint32_t pi = 0; pi < PAGES_TO_WRITE; ++pi) {
 			WritePage(vSrcFd, pi);
 		}
 
-		std::cout << NowString() << "Try to close and reopen file: " << vSourceFile << std::endl;
+		std::cout << NowString()
+                          << "Try to close and reopen file: " << vSourceFile << std::endl;
 		CloseFd(vSrcFd);
 		vSrcFd = OpenPath(vSourceFile, O_RDONLY);
 
@@ -112,7 +119,8 @@ TEST(TSSendfile, TCReadWrite4PerfCompare)
 		std::cout << NowString() << "Try to create file: " << vDestFile << std::endl;
 		int vDestFd = CreateFile(vDestFile, O_TRUNC | O_WRONLY, vSrcStat.st_mode);
 
-		std::cout << NowString() << "Try to copy " << vSourceFile << " to " << vDestFile << std::endl;
+		std::cout << NowString()
+                          << "Try to copy " << vSourceFile << " to " << vDestFile << std::endl;
 		for (uint32_t pi = 0; pi < PAGES_TO_WRITE; ++pi) {
 			ReadFile(vSrcFd, page_bytes, BYTES_PER_PAGE);
 			WriteFile(vDestFd, page_bytes, BYTES_PER_PAGE);
