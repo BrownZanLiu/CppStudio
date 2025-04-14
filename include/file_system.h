@@ -39,33 +39,33 @@ enum class open_flags {
 
 enum class create_mode {
 	// include/uapi/linux/stat.h
-	CM_S_IFMT   = 0170000,
-	CM_S_IFSOCK = 0140000,
-	CM_S_IFLNK  = 0120000,
-	CM_S_IFREG  = 0100000,
-	CM_S_IFBLK  = 0060000,
-	CM_S_IFDIR  = 0040000,
-	CM_S_IFCHR  = 0020000,
-	CM_S_IFIFO  = 0010000,
+	S_IFMT   = 0170000,
+	S_IFSOCK = 0140000,
+	S_IFLNK  = 0120000,
+	S_IFREG  = 0100000,
+	S_IFBLK  = 0060000,
+	S_IFDIR  = 0040000,
+	S_IFCHR  = 0020000,
+	S_IFIFO  = 0010000,
 
-	CM_S_ISUID = 04000,
-	CM_S_ISGID = 02000,
-	CM_S_ISVTX = 01000,
+	S_ISUID = 04000,
+	S_ISGID = 02000,
+	S_ISVTX = 01000,
 
-	CM_S_IRWXU = 0700,
-	CM_S_IRUSR = 0400,
-	CM_S_IWUSR = 0200,
-	CM_S_IXUSR = 0100,
+	S_IRWXU = 0700,
+	S_IRUSR = 0400,
+	S_IWUSR = 0200,
+	S_IXUSR = 0100,
 
-	CM_S_IRWXG = 0070,
-	CM_S_IRGRP = 0040,
-	CM_S_IWGRP = 0020,
-	CM_S_IXGRP = 0010,
+	S_IRWXG = 0070,
+	S_IRGRP = 0040,
+	S_IWGRP = 0020,
+	S_IXGRP = 0010,
 
-	CM_S_IRWXO = 0007,
-	CM_S_IROTH = 0004,
-	CM_S_IWOTH = 0002,
-	CM_S_IXOTH = 0001
+	S_IRWXO = 0007,
+	S_IROTH = 0004,
+	S_IWOTH = 0002,
+	S_IXOTH = 0001
 };
 
 constexpr uint32_t BYTES_PER_PAGE = 4096u;
@@ -82,6 +82,42 @@ void MakeDir(const std::string &dirpath, mode_t mkFlags);
 
 int CreateFile(const std::string &filepath, int openFlags, mode_t createFlags);
 
+struct CreateFileArg {
+	explicit CreateFileArg(std::string _pathname,
+		int _parentDirFd = AT_FDCWD,
+		int _openFlags = O_CREAT | O_EXCL | O_RDWR,
+		mode_t _mode = S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH,
+		FsIOStatics *_fsIoStat = &gFsIoStatics)
+		: fsIoStat(_fsIoStat),
+		pathname(_pathname),
+		parentDirFd(_parentDirFd),
+		openFlags(_openFlags),
+		mode(_mode),
+		extraFlags = IGNORE_EEXIST;
+	{
+	}
+
+	FsIOStatics *fsIoStat;
+	std::string pathname;
+	int parentDirFd;
+	int openFlags;
+	/**
+	 * If and only if O_CREAT or O_TMPFILE specified in openFlags,
+	 * mode will be and must be considered.
+	 * MUST means not to ignore it. Otherwise, there would be undefined behavior.
+	 * Supported values, see 'enum class create_mode' above.
+	 */
+	mode_t mode;
+
+	int extraFlags;
+	enum createfile_arg_flags {
+		NONE = 0,
+		DO_ACCOUNTING = 1 << 0,
+		IGNORE_EEXIST = 1 << 1,
+	};
+};
+void CreateFile(struct CreateFileArg &createFileArg);
+
 int OpenPath(const std::string &filepath, int openFlags);
 
 void CloseFd(int fd);
@@ -91,6 +127,25 @@ void SendFile(int destFd, int srcFd, off_t *pOffset, size_t bytes);
 void StatFd(int fd, struct stat *pStat);
 
 void UnlinkPath(const std::string &filepath);
+
+struct UnlinkPathArg {
+	explicit UnlinkPathArg(std::string _pathname, FsIOStatics *_fsIoStat = &gFsIoStatics)
+		: fsIoStat(_fsIoStat),
+		pathname(_pathname),
+		flags(NONE)
+	{
+	}
+
+	FsIOStatics *fsIoStat;
+	std::string pathname;
+
+	int flags;
+	enum unlink_arg_flags {
+		NONE = 0,
+		DO_ACCOUNTING = 1 << 0,
+	};
+};
+void UnlinkPath(struct UnlinkPathArg &unlinkArg);
 
 /**
  * It's a surprise if no expected bytes are read or writtern.
@@ -243,15 +298,15 @@ void MemUnlock(MemUnlockArg &unlockArg);
 
 struct MkDirArg {
 	explicit MkDirArg(const std::string &_path,
-			int _flags = 0,
 			int _parentDirFd = AT_FDCWD,
 			mode_t _mode = S_IRWXU | S_IRWXG,
 			FsIOStatics *_fsIoStat = &gFsIoStatics)
-		: parentDirFd(_parentDirFd), flags(_flags), pathname(_path), mode(_mode), fsIoStat(_fsIoStat)
+		: parentDirFd(_parentDirFd),
+		pathname(_path),
+		mode(_mode),
+		fsIoStat(_fsIoStat),
+		flags(DO_ACCOUNTING)
 	{
-		if (flags & NO_ACCOUNTING) {
-			_fsIoStat = nullptr;
-		}
 	}
 
 	FsIOStatics *fsIoStat;
@@ -264,8 +319,9 @@ struct MkDirArg {
 	 */
 	int flags;
 	enum mkdir_arg_flags {
-		IGNORE_EEXIST = 1 << 0,
-		NO_ACCOUNTING = 1 << 1,
+		NONE = 0,
+		DO_ACCOUNTING = 1 << 0,
+		IGNORE_EEXIST = 1 << 1,
 	};
 };
 void MkDir(MkDirArg &mkdirArg);

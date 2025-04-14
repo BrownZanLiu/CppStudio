@@ -28,6 +28,39 @@ int CreateFile(const std::string &filepath, int openFlags, mode_t createFlags)
 	return fd;
 }
 
+void CreateFile(struct CreateFileArg &createArg);
+{
+	using namespace std::literals;
+
+	PerfTimePoint vTpStart, vTpEnd;
+	int vRc;
+
+	if (createArg.extraFlags & CreateFileArg::DO_ACCOUNTING) {
+		vTpStart = std::chrono::steady_clock::now();
+		vRc = openat(createArg.parentDirFd,
+			createArg.pathname.c_str(),
+			createArg.openFlags,
+			createArg.mode);
+		vTpEnd = std::chrono::steady_clock::now();
+	} else {
+		vRc = openat(createArg.parentDirFd,
+			createArg.pathname.c_str(),
+			createArg.openFlags,
+			createArg.mode);
+	}
+
+	if (vRc != 0 && (errno != EEXIST ||
+			 !(createArg.extraFlags & CreateFileArg::IGNORE_EEXIST))) {
+		throw std::system_error(errno, std::system_category(),
+			"Failed to create " + createArg.pathname);
+	} else if ((createArg.extraFlags & CreateFileArg::DO_ACCOUNTING) &&
+		   createArg.fsIoStat != nullptr) {
+		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
+		createArg.fsIoStat->IncOperations(filesystem_operation_id::CREAT);
+		createArg.fsIoStat->AddMeasure(filesystem_operation_id::CREAT, vUs);
+	}
+}
+
 int OpenPath(const std::string &filepath, int openFlags)
 {
 	int fd = open(filepath.c_str(), openFlags);
@@ -76,6 +109,32 @@ void UnlinkPath(const std::string &filepath)
 
 	if (vRc < 0) {
 		throw std::string("FileSystem API exception triggered by UnlinkFile: ") + strerror(errno);
+	}
+}
+
+void UnlinkPath(struct UnlinkPathArg &unlinkArg)
+{
+	using namespace std::literals;
+
+	PerfTimePoint vTpStart, vTpEnd;
+	int vRc;
+
+	if (unlinkArg.extraFlags & UnlinkPathArg::DO_ACCOUNTING) {
+		vTpStart = std::chrono::steady_clock::now();
+		vRc = unlink(unlinkArg.pathname.c_str());
+		vTpEnd = std::chrono::steady_clock::now();
+	} else {
+		vRc = unlink(unlinkArg.pathname.c_str());
+	}
+
+	if (vRc != 0) {
+		throw std::system_error(errno, std::system_category(),
+			"Failed to unlink " + unlinkArg.pathname);
+	} else if ((unlinkArg.flags & UnlinkPathArg::DO_ACCOUNTING) &&
+		   unlinkArg.fsIoStat != nullptr) {
+		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
+		unlinkArg.fsIoStat->IncOperations(filesystem_operation_id::UNLINK);
+		unlinkArg.fsIoStat->AddMeasure(filesystem_operation_id::UNLINK, vUs);
 	}
 }
 
@@ -154,13 +213,22 @@ void MkDir(MkDirArg &mkdirArg)
 {
 	using namespace std::literals;
 
-	const auto vTpStart = std::chrono::steady_clock::now();
-	int vRc = mkdirat(mkdirArg.parentDirFd, mkdirArg.pathname.c_str(), mkdirArg.mode);
-	const auto vTpEnd = std::chrono::steady_clock::now();
+	PerfTimePoint vTpStart, vTpEnd;
+	int vRc;
+
+	if (unlinkArg.extraFlags & UnlinkPathArg::DO_ACCOUNTING) {
+		vTpStart = std::chrono::steady_clock::now();
+		vRc = mkdirat(mkdirArg.parentDirFd, mkdirArg.pathname.c_str(), mkdirArg.mode);
+		vTpEnd = std::chrono::steady_clock::now();
+	} else {
+		vRc = mkdirat(mkdirArg.parentDirFd, mkdirArg.pathname.c_str(), mkdirArg.mode);
+	}
 
 	if (vRc != 0 && (errno != EEXIST || !(mkdirArg.flags & MkDirArg::IGNORE_EEXIST))) {
-		throw std::system_error(errno, std::system_category(), "FileSystem API exception triggered by MkDir");
-	} else if (mkdirArg.fsIoStat != nullptr) {
+		throw std::system_error(errno, std::system_category(),
+			"Failed to mkdir " + mkdirArg.pathname);
+	} else if ((unlinkArg.extraFlags & UnlinkPathArg::DO_ACCOUNTING) &&
+		   mkdirArg.fsIoStat != nullptr) {
 		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
 		mkdirArg.fsIoStat->IncOperations(filesystem_operation_id::MKDIR);
 		mkdirArg.fsIoStat->AddMeasure(filesystem_operation_id::MKDIR, vUs);

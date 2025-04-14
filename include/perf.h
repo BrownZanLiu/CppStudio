@@ -24,6 +24,9 @@ struct perf_counter {
 #endif
 };
 
+using PerfClock = std::chrono::steady_clock;
+using PerfTimePoint = std::chrono::time_point<PerfClock>;
+
 namespace filesystem {
 
 enum class filesystem_operation_id {
