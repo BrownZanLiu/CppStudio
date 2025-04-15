@@ -24,7 +24,7 @@ TEST(TSMemMap, TCLoadFile)
 		std::string vTestDir = FLAGS_root + "/mmap";
 
 		std::cout << NowString() << "Try to make directory: " << vTestDir << std::endl;
-		MakeDir(vTestDir, S_IRWXU);
+		MkDir(vTestDir, S_IRWXU);
 
 		std::string vSourceFile = vTestDir + "/file4mmap.bin";
 		std::cout << NowString() << "Try to create file: " << vSourceFile << std::endl;

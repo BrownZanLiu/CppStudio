@@ -14,7 +14,7 @@
 namespace liuzan {
 using namespace std::literals;
 
-struct perf_counter {
+struct PerfCounter {
 #if defined(PERF_WITH_ATOMIC_COUNTERS)
 	std::atomic_uint64_t operations;
 	std::atomic_uint64_t accumulated;
@@ -29,7 +29,7 @@ using PerfTimePoint = std::chrono::time_point<PerfClock>;
 
 namespace filesystem {
 
-enum class filesystem_operation_id {
+enum class FsOpId {
 	WRITE = 0,  // write()/writev()/pwrite64()/pwritev()/pwritev2()
 	READ = 1,  // read()/readv()/pread64()/preadv()/preadv2()
 	MMAP = 2,  // mmap()/mmap2()
@@ -37,6 +37,7 @@ enum class filesystem_operation_id {
 	MKDIR = 4,  // mkdir()/mkdirat()
 	RMDIR = 5,  // rmdir()
 	CREAT = 6,  // creat()/open()/mknod()/mknodat()
+	CREATE = CREAT,  // preferred
 	RMFILE = 7,
 	RENAME = 8,  // rename()/renameat()/renameat2()
 	OPEN = 9,  // open()/openat()/openat2()
@@ -80,34 +81,34 @@ enum class filesystem_operation_id {
 	SENDFILE,  // sendfile()/sendfile64()
 };
 
-struct fs_perf_counters {
-	static constexpr int MAX_OPERATIONS2COUNT = static_cast<int>(filesystem_operation_id::IDS_TO_PERF);
-	perf_counter counters[MAX_OPERATIONS2COUNT];
+struct FsPerfCounters {
+	static constexpr int MAX_OPERATIONS2COUNT = static_cast<int>(FsOpId::IDS_TO_PERF);
+	PerfCounter counters[MAX_OPERATIONS2COUNT];
 };
 
-class FsIOStatics: PerCpuVar<fs_perf_counters> {
+class FsIoStatistics: PerCpuVar<FsPerfCounters> {
 /**
  * For latency, use microsecond as unit.
  * For bandwidth, use byte as unit.
  */
 public:
-	FsIOStatics()
+	FsIoStatistics()
 	{
 		clearAll();
 		finishInit();
 	}
 
-	void IncOperations(filesystem_operation_id id)
+	void IncOperations(FsOpId id)
 	{
 		curCpuPart().counters[static_cast<int>(id)].operations++;
 	}
 
-	void AddMeasure(filesystem_operation_id id, uint64_t measure)
+	void AddMeasure(FsOpId id, uint64_t measure)
 	{
 		curCpuPart().counters[static_cast<int>(id)].accumulated += measure;
 	}
 
-	uint64_t OperationsDone(filesystem_operation_id id)
+	uint64_t OperationsDone(FsOpId id)
 	{
 		uint64_t vSysTotal = 0;
 
@@ -118,7 +119,7 @@ public:
 		return vSysTotal;
 	}
 
-	uint64_t AccumulatedMeasure(filesystem_operation_id id)
+	uint64_t AccumulatedMeasure(FsOpId id)
 	{
 		uint64_t vSysTotal = 0;
 
@@ -129,7 +130,7 @@ public:
 		return vSysTotal;
 	}
 
-	void Clear(filesystem_operation_id id)
+	void Clear(FsOpId id)
 	{
 		for (int i = 0; i < nrOfCpus(); ++i) {
 			cpuPart(i).counters[static_cast<int>(id)].operations = 0;

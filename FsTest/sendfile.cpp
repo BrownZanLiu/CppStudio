@@ -25,7 +25,7 @@ TEST(TSSendfile, TCSingleShot)
 		std::string vTestDir = FLAGS_root + "/sendfile";
 
 		std::cout << NowString() << "Try to make directory: " << vTestDir << std::endl;
-		MakeDir(vTestDir, S_IRWXU);
+		MkDir(vTestDir, S_IRWXU);
 
 		std::string vSourceFile = vTestDir + "/source.bin";
 		std::cout << NowString() << "Try to create file: " << vSourceFile << std::endl;
@@ -93,7 +93,7 @@ TEST(TSSendfile, TCReadWrite4PerfCompare)
 		std::string vTestDir = FLAGS_root + "/read_write";
 
 		std::cout << NowString() << "Try to make directory: " << vTestDir << std::endl;
-		MakeDir(vTestDir, S_IRWXU);
+		MkDir(vTestDir, S_IRWXU);
 
 		std::string vSourceFile = vTestDir + "/source.bin";
 		std::cout << NowString() << "Try to create file: " << vSourceFile << std::endl;

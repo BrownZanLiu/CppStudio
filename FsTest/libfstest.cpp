@@ -40,7 +40,8 @@ std::string GetTestRootDir()
 	} else {
 		vDir2Mk = FLAGS_root + "/fstest";
 	}
-	MkDirArg vArg(vDir2Mk, MkDirArg::IGNORE_EEXIST | MkDirArg::NO_ACCOUNTING);
+	MkDirArg vArg(vDir2Mk);
+	vArg.extraFlags = MkDirArg::IGNORE_EEXIST | MkDirArg::DO_ACCOUNTING;
 	MkDir(vArg);
 
 	return vDir2Mk;

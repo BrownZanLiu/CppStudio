@@ -1,4 +1,5 @@
-#include <chrono>  // std::chrono::steady_clock
+#include <chrono>  // PerfClock
+#include <string>  // std::to_string()
 #include <system_error>
 
 #include <file_system.h>
@@ -6,100 +7,166 @@
 namespace liuzan {
 namespace filesystem {
 
-FsIOStatics gFsIoStatics;
+FsIoStatistics gFsIoStatistics;
 
-void MakeDir(const std::string &dirpath, mode_t mkFlags)
+void MkDir(const std::string &dirpath, mode_t mkFlags)
 {
 	int vRc = mkdir(dirpath.c_str(), mkFlags);
 
 	if (vRc != 0 && errno != EEXIST) {
-		throw std::string("FileSystem API exception triggered by MakeDir: ") + strerror(errno);
+		throw std::string("Failed to mkdir ") + dirpath + " err: " + strerror(errno);
 	}
 }
 
-int CreateFile(const std::string &filepath, int openFlags, mode_t createFlags)
-{
-	int fd = open(filepath.c_str(), O_CREAT | openFlags, createFlags);
-
-	if (fd < 0) {
-		throw std::string("FileSystem API exception triggered by CreateFile: ") + strerror(errno);
-	}
-
-	return fd;
-}
-
-void CreateFile(struct CreateFileArg &createArg);
+void MkDir(MkDirArg &mkdirArg)
 {
 	using namespace std::literals;
 
 	PerfTimePoint vTpStart, vTpEnd;
 	int vRc;
 
+	if (mkdirArg.extraFlags & MkDirArg::DO_ACCOUNTING) {
+		vTpStart = PerfClock::now();
+		vRc = mkdirat(mkdirArg.parentDirFd, mkdirArg.pathname.c_str(), mkdirArg.mode);
+		vTpEnd = PerfClock::now();
+	} else {
+		vRc = mkdirat(mkdirArg.parentDirFd, mkdirArg.pathname.c_str(), mkdirArg.mode);
+	}
+
+	// 0 vs. -1
+	if (vRc != 0) {
+		if (errno != EEXIST || !(mkdirArg.extraFlags & MkDirArg::IGNORE_EEXIST)) {
+			throw std::system_error(errno, std::system_category(),
+				"Failed to mkdir " + mkdirArg.pathname);
+		}
+	} else if ((mkdirArg.extraFlags & MkDirArg::DO_ACCOUNTING) &&
+		   mkdirArg.fsIoStat != nullptr) {
+		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
+		mkdirArg.fsIoStat->IncOperations(FsOpId::MKDIR);
+		mkdirArg.fsIoStat->AddMeasure(FsOpId::MKDIR, vUs);
+	}
+}
+
+void RmDir(RmDirArg &rmdirArg)
+{
+	using namespace std::literals;
+
+	PerfTimePoint vTpStart, vTpEnd;
+	int vRc = 0;
+
+	if (rmdirArg.extraFlags & RmDirArg::DO_ACCOUNTING) {
+		vTpStart = PerfClock::now();
+		vRc = rmdir(rmdirArg.pathname.c_str());
+		vTpEnd = PerfClock::now();
+	} else {
+		vRc = rmdir(rmdirArg.pathname.c_str());
+	}
+
+	/* 0 vs. -1 */
+	if (vRc != 0) {
+		throw std::system_error(errno, std::system_category(),
+				"Failed to rmdir " + rmdirArg.pathname);
+	} else if ((rmdirArg.extraFlags & RmDirArg::DO_ACCOUNTING) &&
+		   rmdirArg.fsIoStat != nullptr) {
+		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
+		rmdirArg.fsIoStat->IncOperations(FsOpId::RMDIR);
+		rmdirArg.fsIoStat->AddMeasure(FsOpId::RMDIR, vUs);
+	}
+}
+
+int CreateFile(const std::string &filepath, int openFlags, mode_t createFlags)
+{
+	int vFd = open(filepath.c_str(), OpenFlags::OF_CREAT | openFlags, createFlags);
+
+	if (vFd < 0) {
+		throw std::string("Failed to create ") + filepath + " err: " + strerror(errno);
+	}
+
+	return vFd;
+}
+
+int CreateFile(CreateFileArg &createArg)
+{
+	using namespace std::literals;
+
+	PerfTimePoint vTpStart, vTpEnd;
+	int vFd;
+
+	if (createArg.extraFlags & CreateFileArg::IGNORE_EEXIST) {
+		createArg.openFlags &= ~OpenFlags::OF_EXCL;
+	}
+
 	if (createArg.extraFlags & CreateFileArg::DO_ACCOUNTING) {
-		vTpStart = std::chrono::steady_clock::now();
-		vRc = openat(createArg.parentDirFd,
+		vTpStart = PerfClock::now();
+		vFd = openat(createArg.parentDirFd,
 			createArg.pathname.c_str(),
 			createArg.openFlags,
 			createArg.mode);
-		vTpEnd = std::chrono::steady_clock::now();
+		vTpEnd = PerfClock::now();
 	} else {
-		vRc = openat(createArg.parentDirFd,
+		vFd = openat(createArg.parentDirFd,
 			createArg.pathname.c_str(),
 			createArg.openFlags,
 			createArg.mode);
 	}
 
-	if (vRc != 0 && (errno != EEXIST ||
-			 !(createArg.extraFlags & CreateFileArg::IGNORE_EEXIST))) {
+	/* -1 vs. vFd(>0) */
+	if (vFd < 0) {
 		throw std::system_error(errno, std::system_category(),
 			"Failed to create " + createArg.pathname);
 	} else if ((createArg.extraFlags & CreateFileArg::DO_ACCOUNTING) &&
 		   createArg.fsIoStat != nullptr) {
 		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
-		createArg.fsIoStat->IncOperations(filesystem_operation_id::CREAT);
-		createArg.fsIoStat->AddMeasure(filesystem_operation_id::CREAT, vUs);
+		createArg.fsIoStat->IncOperations(FsOpId::CREATE);
+		createArg.fsIoStat->AddMeasure(FsOpId::CREATE, vUs);
 	}
+
+	return vFd;
 }
 
 int OpenPath(const std::string &filepath, int openFlags)
 {
-	int fd = open(filepath.c_str(), openFlags);
+	int vFd = open(filepath.c_str(), openFlags);
 
-	if (fd < 0) {
+	if (vFd < 0) {
 		throw std::string("FileSystem API exception triggered by OpenPath: ") + strerror(errno);
 	}
 
-	return fd;
+	return vFd;
 }
 
-void CloseFd(int fd)
+void LinkPath(LinkPathArg &linkArg)
 {
-	int vRc = close(fd);
+	using namespace std::literals;
 
-	if (vRc < 0) {
-		throw std::string("FileSystem API exception triggered by CloseFd: ") + strerror(errno);
+	PerfTimePoint vTpStart, vTpEnd;
+	int vRc;
+
+	if (linkArg.extraFlags & LinkPathArg::DO_ACCOUNTING) {
+		vTpStart = PerfClock::now();
+		vRc = linkat(linkArg.srcParentFd,
+			linkArg.srcPathname.c_str(),
+			linkArg.dstParentFd,
+			linkArg.dstPathname.c_str(),
+			linkArg.flags);
+		vTpEnd = PerfClock::now();
+	} else {
+		vRc = linkat(linkArg.srcParentFd,
+			linkArg.srcPathname.c_str(),
+			linkArg.dstParentFd,
+			linkArg.dstPathname.c_str(),
+			linkArg.flags);
 	}
-}
 
-void SendFile(int destFd, int srcFd, off_t *pOffset, size_t bytes)
-{
-	ssize_t vRc = sendfile(destFd, srcFd, pOffset, bytes);
-
-	if (vRc == bytes) {
-		return;
-	} else if (vRc == -1)  {
-		throw std::string("FileSystem API exception triggered by SendFile: ") + strerror(errno);
-	} else if (vRc != bytes) {
-		throw std::string("FileSystem API exception triggered by SendFile: ") + std::to_string(vRc);
-	}
-}
-
-void StatFd(int fd, struct stat *pStat)
-{
-	int vRc = fstat(fd, pStat);
-
-	if (vRc < 0) {
-		throw std::string("FileSystem API exception triggered by StatFd: ") + strerror(errno);
+	/* 0 vs. -1 */
+	if (vRc != 0) {
+		throw std::system_error(errno, std::system_category(),
+			"Failed to link " + linkArg.srcPathname + " to " + linkArg.dstPathname);
+	} else if ((linkArg.extraFlags & LinkPathArg::DO_ACCOUNTING) &&
+		   linkArg.fsIoStat != nullptr) {
+		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
+		linkArg.fsIoStat->IncOperations(FsOpId::LINK);
+		linkArg.fsIoStat->AddMeasure(FsOpId::LINK, vUs);
 	}
 }
 
@@ -108,7 +175,7 @@ void UnlinkPath(const std::string &filepath)
 	int vRc = unlink(filepath.c_str());
 
 	if (vRc < 0) {
-		throw std::string("FileSystem API exception triggered by UnlinkFile: ") + strerror(errno);
+		throw std::string("Failed to unlink ") + filepath + " err: " + strerror(errno);
 	}
 }
 
@@ -120,21 +187,69 @@ void UnlinkPath(struct UnlinkPathArg &unlinkArg)
 	int vRc;
 
 	if (unlinkArg.extraFlags & UnlinkPathArg::DO_ACCOUNTING) {
-		vTpStart = std::chrono::steady_clock::now();
+		vTpStart = PerfClock::now();
 		vRc = unlink(unlinkArg.pathname.c_str());
-		vTpEnd = std::chrono::steady_clock::now();
+		vTpEnd = PerfClock::now();
 	} else {
 		vRc = unlink(unlinkArg.pathname.c_str());
 	}
 
+	/* 0 vs. -1 */
 	if (vRc != 0) {
 		throw std::system_error(errno, std::system_category(),
 			"Failed to unlink " + unlinkArg.pathname);
-	} else if ((unlinkArg.flags & UnlinkPathArg::DO_ACCOUNTING) &&
+	} else if ((unlinkArg.extraFlags & UnlinkPathArg::DO_ACCOUNTING) &&
 		   unlinkArg.fsIoStat != nullptr) {
 		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
-		unlinkArg.fsIoStat->IncOperations(filesystem_operation_id::UNLINK);
-		unlinkArg.fsIoStat->AddMeasure(filesystem_operation_id::UNLINK, vUs);
+		unlinkArg.fsIoStat->IncOperations(FsOpId::UNLINK);
+		unlinkArg.fsIoStat->AddMeasure(FsOpId::UNLINK, vUs);
+	}
+}
+
+void CloseFd(int fd)
+{
+	int vRc = close(fd);
+
+	if (vRc < 0) {
+		throw std::string("Failed to clase fd-") +
+			std::to_string(fd) + " err: " + strerror(errno);
+	}
+}
+
+void CloseFd(CloseFdArg &closeArg)
+{
+	using namespace std::literals;
+
+	PerfTimePoint vTpStart, vTpEnd;
+	int vRc;
+
+	if (closeArg.extraFlags & CloseFdArg::DO_ACCOUNTING) {
+		vTpStart = PerfClock::now();
+		vRc = close(closeArg.fd);
+		vTpEnd = PerfClock::now();
+	} else {
+		vRc = close(closeArg.fd);
+	}
+
+	/* 0 vs. -1 */
+	if (vRc != 0) {
+		throw std::system_error(errno, std::system_category(),
+			"Failed to close fd-" + closeArg.fd);
+	} else if ((closeArg.extraFlags & CloseFdArg::DO_ACCOUNTING) &&
+		   closeArg.fsIoStat != nullptr) {
+		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
+		closeArg.fsIoStat->IncOperations(FsOpId::CLOSE);
+		closeArg.fsIoStat->AddMeasure(FsOpId::CLOSE, vUs);
+	}
+}
+
+void StatFd(int fd, struct stat *pStat)
+{
+	int vRc = fstat(fd, pStat);
+
+	if (vRc < 0) {
+		throw std::string("Failed to stat fd-") +
+			std::to_string(fd) + " err: " + strerror(errno);
 	}
 }
 
@@ -159,6 +274,19 @@ void ReadFile(int fd, char *buf, size_t len)
 		throw std::string("FileSystem API exception triggered by ReadFile: ") + strerror(errno);
 	} else if (vRc != len) {
 		throw std::string("FileSystem API exception triggered by ReadFile: ") + std::to_string(vRc);
+	}
+}
+
+void SendFile(int destFd, int srcFd, off_t *pOffset, size_t bytes)
+{
+	ssize_t vRc = sendfile(destFd, srcFd, pOffset, bytes);
+
+	if (vRc == bytes) {
+		return;
+	} else if (vRc == -1)  {
+		throw std::string("FileSystem API exception triggered by SendFile: ") + strerror(errno);
+	} else if (vRc != bytes) {
+		throw std::string("FileSystem API exception triggered by SendFile: ") + std::to_string(vRc);
 	}
 }
 
@@ -209,54 +337,11 @@ void MemUnlock(MemUnlockArg &unlockArg)
 	}
 }
 
-void MkDir(MkDirArg &mkdirArg)
-{
-	using namespace std::literals;
-
-	PerfTimePoint vTpStart, vTpEnd;
-	int vRc;
-
-	if (unlinkArg.extraFlags & UnlinkPathArg::DO_ACCOUNTING) {
-		vTpStart = std::chrono::steady_clock::now();
-		vRc = mkdirat(mkdirArg.parentDirFd, mkdirArg.pathname.c_str(), mkdirArg.mode);
-		vTpEnd = std::chrono::steady_clock::now();
-	} else {
-		vRc = mkdirat(mkdirArg.parentDirFd, mkdirArg.pathname.c_str(), mkdirArg.mode);
-	}
-
-	if (vRc != 0 && (errno != EEXIST || !(mkdirArg.flags & MkDirArg::IGNORE_EEXIST))) {
-		throw std::system_error(errno, std::system_category(),
-			"Failed to mkdir " + mkdirArg.pathname);
-	} else if ((unlinkArg.extraFlags & UnlinkPathArg::DO_ACCOUNTING) &&
-		   mkdirArg.fsIoStat != nullptr) {
-		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
-		mkdirArg.fsIoStat->IncOperations(filesystem_operation_id::MKDIR);
-		mkdirArg.fsIoStat->AddMeasure(filesystem_operation_id::MKDIR, vUs);
-	}
-}
-
-void RmDir(RmDirArg &rmdirArg)
-{
-	using namespace std::literals;
-
-	const auto vTpStart = std::chrono::steady_clock::now();
-	int vRc = rmdir(rmdirArg.pathname.c_str());
-	const auto vTpEnd = std::chrono::steady_clock::now();
-
-	if (vRc != 0) {
-		throw std::system_error(errno, std::system_category(), "FileSystem API exception triggered by RmDir");
-	} else if (rmdirArg.fsIoStat != nullptr) {
-		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
-		rmdirArg.fsIoStat->IncOperations(filesystem_operation_id::RMDIR);
-		rmdirArg.fsIoStat->AddMeasure(filesystem_operation_id::RMDIR, vUs);
-	}
-}
-
 void Rename(RenameArg &renameArg)
 {
 	using namespace std::literals;
 
-	const auto vTpStart = std::chrono::steady_clock::now();
+	const auto vTpStart = PerfClock::now();
 #if defined(GLIBC_HAS_RENAMEAT2)
 #pragma message "The glibc has renameat2(), use renameat2()."
 	int vRc = renameat2(renameArg.oldParentDirFd, renameArg.oldPathname.c_str(),
@@ -267,15 +352,15 @@ void Rename(RenameArg &renameArg)
 	int vRc = renameat(renameArg.oldParentDirFd, renameArg.oldPathname.c_str(),
 			            renameArg.newParentDirFd, renameArg.newPathname.c_str());
 #endif
-	const auto vTpEnd = std::chrono::steady_clock::now();
+	const auto vTpEnd = PerfClock::now();
 	const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart).count() * 1000000ul);
 
 	if (vRc != 0) {
 		throw std::system_error(errno, std::system_category(), "FileSystem API exception triggered by Rename");
 	} else if (renameArg.fsIoStat != nullptr) {
 		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
-		renameArg.fsIoStat->IncOperations(filesystem_operation_id::RENAME);
-		renameArg.fsIoStat->AddMeasure(filesystem_operation_id::RENAME, vUs);
+		renameArg.fsIoStat->IncOperations(FsOpId::RENAME);
+		renameArg.fsIoStat->AddMeasure(FsOpId::RENAME, vUs);
 	}
 }
 

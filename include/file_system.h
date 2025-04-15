@@ -12,61 +12,10 @@
 #include <sys/stat.h>  // mkdir(), fstat(), mode_t
 #include <unistd.h>  // close(), rmdir()
 
-#include <perf.h>  // filesystem_operation_id/FsIOStatics
+#include <perf.h>  // filesystem_operation_id/FsIoStatistics
 
 namespace liuzan {
 namespace filesystem {
-
-enum class open_flags {
-	// include/uapi/asm-generic/fcntl.h
-	OF_O_CLOEXEC   = 02000000,
-	OF_O_NOATIME   = 01000000,
-	OF_O_NOFOLLOW  = 00400000,
-	OF_O_DIRECTORY = 00200000,
-	OF_O_LARGEFILE = 00100000,
-	OF_O_DIRECT    = 00040000,
-	OF_O_NONBLOCK  = 00004000,
-	OF_O_APPEND    = 00002000,
-	OF_O_TRUNC     = 00001000,
-	OF_O_NOCTTY    = 00000400,
-	OF_O_EXCL      = 00000200,
-	OF_O_CREAT     = 00000100,
-	OF_O_ACCMODE   = 00000003,
-	OF_O_RDWR      = 00000002,
-	OF_O_WRONLY    = 00000001,
-	OF_O_RDONLY    = 00000000
-};
-
-enum class create_mode {
-	// include/uapi/linux/stat.h
-	S_IFMT   = 0170000,
-	S_IFSOCK = 0140000,
-	S_IFLNK  = 0120000,
-	S_IFREG  = 0100000,
-	S_IFBLK  = 0060000,
-	S_IFDIR  = 0040000,
-	S_IFCHR  = 0020000,
-	S_IFIFO  = 0010000,
-
-	S_ISUID = 04000,
-	S_ISGID = 02000,
-	S_ISVTX = 01000,
-
-	S_IRWXU = 0700,
-	S_IRUSR = 0400,
-	S_IWUSR = 0200,
-	S_IXUSR = 0100,
-
-	S_IRWXG = 0070,
-	S_IRGRP = 0040,
-	S_IWGRP = 0020,
-	S_IXGRP = 0010,
-
-	S_IRWXO = 0007,
-	S_IROTH = 0004,
-	S_IWOTH = 0002,
-	S_IXOTH = 0001
-};
 
 constexpr uint32_t BYTES_PER_PAGE = 4096u;
 constexpr uint32_t QWORD_PER_PAGE = BYTES_PER_PAGE / 8u;
@@ -75,39 +24,138 @@ constexpr uint32_t PAGES_PER_MEGA = BYTES_PER_MEGA / BYTES_PER_PAGE;
 constexpr uint32_t BYTES_PER_GIGA = 1024u * 1024u * 1024u;
 constexpr uint32_t PAGES_PER_GIGA = BYTES_PER_GIGA / BYTES_PER_PAGE;
 
-extern FsIOStatics gFsIoStatics;
+extern FsIoStatistics gFsIoStatistics;
 
-/**** For surprise, all APIs throw std::string message. ****/
-void MakeDir(const std::string &dirpath, mode_t mkFlags);
+enum OpenFlags {
+	// include/uapi/asm-generic/fcntl.h
+	OF_CLOEXEC   = 02000000,
+	OF_NOATIME   = 01000000,
+	OF_NOFOLLOW  = 00400000,
+	OF_DIRECTORY = 00200000,
+	OF_LARGEFILE = 00100000,
+	OF_DIRECT    = 00040000,
+	OF_NONBLOCK  = 00004000,
+	OF_APPEND    = 00002000,
+	OF_TRUNC     = 00001000,
+	OF_NOCTTY    = 00000400,
+	OF_EXCL      = 00000200,
+	OF_CREAT     = 00000100,
+	OF_ACCMODE   = 00000003,
+	OF_RDWR      = 00000002,
+	OF_WRONLY    = 00000001,
+	OF_RDONLY    = 00000000
+};
+
+enum CreateMode {
+	// include/uapi/linux/stat.h
+	CM_IFMT   = 0170000,
+	CM_IFSOCK = 0140000,
+	CM_IFLNK  = 0120000,
+	CM_IFREG  = 0100000,
+	CM_IFBLK  = 0060000,
+	CM_IFDIR  = 0040000,
+	CM_IFCHR  = 0020000,
+	CM_IFIFO  = 0010000,
+
+	CM_ISUID = 04000,
+	CM_ISGID = 02000,
+	CM_ISVTX = 01000,
+
+	CM_IRWXU = 0700,
+	CM_IRUSR = 0400,
+	CM_IWUSR = 0200,
+	CM_IXUSR = 0100,
+
+	CM_IRWXG = 0070,
+	CM_IRGRP = 0040,
+	CM_IWGRP = 0020,
+	CM_IXGRP = 0010,
+
+	CM_IRWXO = 0007,
+	CM_IROTH = 0004,
+	CM_IWOTH = 0002,
+	CM_IXOTH = 0001
+};
+
+void MkDir(const std::string &dirpath, mode_t mkFlags);
+struct MkDirArg {
+	explicit MkDirArg(const std::string &_pathname,
+			int _parentDirFd = AT_FDCWD,
+			mode_t _mode = CreateMode::CM_IRWXU | CreateMode::CM_IRWXG,
+			FsIoStatistics *_fsIoStat = &gFsIoStatistics)
+		: parentDirFd(_parentDirFd),
+		pathname(_pathname),
+		mode(_mode),
+		fsIoStat(_fsIoStat),
+		extraFlags(DO_ACCOUNTING)
+	{
+	}
+
+	FsIoStatistics *fsIoStat;
+	std::string pathname;
+	int parentDirFd;
+	mode_t mode;
+	/**
+	 * Without ACL enabled, effective mode >= (mode & 0777 & ~process_umask)
+	 * See 'enum CreateMode' above.
+	 */
+
+	int extraFlags;
+	enum mkdir_arg_flags {
+		NONE = 0,
+		DO_ACCOUNTING = 1 << 0,
+		IGNORE_EEXIST = 1 << 1,
+	};
+};
+void MkDir(MkDirArg &mkdirArg);
+
+struct RmDirArg {
+	explicit RmDirArg(const std::string &_pathname,
+		FsIoStatistics *_fsIoStat = &gFsIoStatistics)
+		: pathname(_pathname),
+		fsIoStat(_fsIoStat),
+		extraFlags(DO_ACCOUNTING)
+	{}
+
+	std::string pathname;
+	FsIoStatistics *fsIoStat;
+
+	int extraFlags;
+	enum rmdir_arg_flags {
+		NONE = 0,
+		DO_ACCOUNTING = 1 << 0,
+	};
+};
+void RmDir(RmDirArg &rmdirArg);
 
 int CreateFile(const std::string &filepath, int openFlags, mode_t createFlags);
-
 struct CreateFileArg {
 	explicit CreateFileArg(std::string _pathname,
 		int _parentDirFd = AT_FDCWD,
-		int _openFlags = O_CREAT | O_EXCL | O_RDWR,
-		mode_t _mode = S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH,
-		FsIOStatics *_fsIoStat = &gFsIoStatics)
+		int _openFlags = OpenFlags::OF_CREAT | OpenFlags::OF_EXCL | OpenFlags::OF_RDWR,
+		mode_t _mode = CreateMode::CM_IFREG | CreateMode::CM_IRUSR | CreateMode::CM_IWUSR |
+			CreateMode::CM_IRGRP | CreateMode::CM_IROTH,
+		FsIoStatistics *_fsIoStat = &gFsIoStatistics)
 		: fsIoStat(_fsIoStat),
 		pathname(_pathname),
 		parentDirFd(_parentDirFd),
 		openFlags(_openFlags),
 		mode(_mode),
-		extraFlags = IGNORE_EEXIST;
+		extraFlags(DO_ACCOUNTING)
 	{
 	}
 
-	FsIOStatics *fsIoStat;
+	FsIoStatistics *fsIoStat;
 	std::string pathname;
 	int parentDirFd;
 	int openFlags;
+	mode_t mode;
 	/**
 	 * If and only if O_CREAT or O_TMPFILE specified in openFlags,
 	 * mode will be and must be considered.
 	 * MUST means not to ignore it. Otherwise, there would be undefined behavior.
-	 * Supported values, see 'enum class create_mode' above.
+	 * Supported values, see 'enum class CreateMode' above.
 	 */
-	mode_t mode;
 
 	int extraFlags;
 	enum createfile_arg_flags {
@@ -116,36 +164,98 @@ struct CreateFileArg {
 		IGNORE_EEXIST = 1 << 1,
 	};
 };
-void CreateFile(struct CreateFileArg &createFileArg);
+int CreateFile(struct CreateFileArg &createFileArg);
 
 int OpenPath(const std::string &filepath, int openFlags);
 
-void CloseFd(int fd);
+enum LinkFlags {
+	// include/uapi/linux/fcntl.h
+	LF_SYMLINK_FOLLOW = 0x400,
+	/**
+	 * If set, the link operation will dereferrence the srcPathname if it's symbolic link.
+	 * Then, the target will link to the backing file instead of the symbolic file itself.
+	 */
 
-void SendFile(int destFd, int srcFd, off_t *pOffset, size_t bytes);
+	LF_EMPTY_PATH = 0x1000
+	/**
+	 * With AT_EMPTY_PATH, the srcPathname could be empty and the srcParentFd (may have been
+	 * obtained using the open O_PATH flag) would be used as the srouce file (MUST NOT be dir).
+	 * Caller must have the CAP_DAC_READ_SEARCH capability.
+	 */
+};
 
-void StatFd(int fd, struct stat *pStat);
-
-void UnlinkPath(const std::string &filepath);
-
-struct UnlinkPathArg {
-	explicit UnlinkPathArg(std::string _pathname, FsIOStatics *_fsIoStat = &gFsIoStatics)
+struct LinkPathArg {
+	explicit LinkPathArg(std::string _srcPathname, std::string _dstPathname,
+		int _srcParentFd = AT_FDCWD,
+		int _dstParentFd = AT_FDCWD,
+		int _flags = 0,
+		FsIoStatistics *_fsIoStat = &gFsIoStatistics)
 		: fsIoStat(_fsIoStat),
-		pathname(_pathname),
-		flags(NONE)
+		srcParentFd(_srcParentFd),
+		dstParentFd(_dstParentFd),
+		srcPathname(_srcPathname),
+		dstPathname(_dstPathname),
+		flags(_flags),
+		extraFlags(DO_ACCOUNTING)
 	{
 	}
 
-	FsIOStatics *fsIoStat;
+	FsIoStatistics *fsIoStat;
+	int srcParentFd;
+	int dstParentFd;
+	std::string srcPathname;
+	std::string dstPathname;
+	int flags;
+
+	int extraFlags;
+	enum link_arg_flags {
+		NONE = 0,
+		DO_ACCOUNTING = 1 << 0,
+	};
+};
+void LinkPath(LinkPathArg &linkArg);
+
+void UnlinkPath(const std::string &filepath);
+struct UnlinkPathArg {
+	explicit UnlinkPathArg(std::string _pathname, FsIoStatistics *_fsIoStat = &gFsIoStatistics)
+		: fsIoStat(_fsIoStat),
+		pathname(_pathname),
+		extraFlags(DO_ACCOUNTING)
+	{
+	}
+
+	FsIoStatistics *fsIoStat;
 	std::string pathname;
 
-	int flags;
+	int extraFlags;
 	enum unlink_arg_flags {
 		NONE = 0,
 		DO_ACCOUNTING = 1 << 0,
 	};
 };
-void UnlinkPath(struct UnlinkPathArg &unlinkArg);
+void UnlinkPath(UnlinkPathArg &unlinkArg);
+
+void CloseFd(int fd);
+struct CloseFdArg {
+	explicit CloseFdArg(int _fd, FsIoStatistics *_fsIoStat = &gFsIoStatistics)
+		: fsIoStat(_fsIoStat),
+		fd(_fd),
+		extraFlags(DO_ACCOUNTING)
+	{
+	}
+
+	FsIoStatistics *fsIoStat;
+	int fd;
+
+	int extraFlags;
+	enum close_arg_flags {
+		NONE = 0,
+		DO_ACCOUNTING = 1 << 0,
+	};
+};
+void CloseFd(CloseFdArg &closeArg);
+
+void StatFd(int fd, struct stat *pStat);
 
 /**
  * It's a surprise if no expected bytes are read or writtern.
@@ -155,7 +265,10 @@ void UnlinkPath(struct UnlinkPathArg &unlinkArg);
  * 3) Optimize when we really need.
  */
 void WriteFile(int fd, const char *buf, size_t len);
+
 void ReadFile(int fd, char *buf, size_t len);
+
+void SendFile(int destFd, int srcFd, off_t *pOffset, size_t bytes);
 
 struct MemMapArg {
 	MemMapArg(int _fd, int _flags, int _prot, size_t _len, off_t _off = 0, void *_vaHint = nullptr)
@@ -296,51 +409,11 @@ struct MemUnlockArg {
 };
 void MemUnlock(MemUnlockArg &unlockArg);
 
-struct MkDirArg {
-	explicit MkDirArg(const std::string &_path,
-			int _parentDirFd = AT_FDCWD,
-			mode_t _mode = S_IRWXU | S_IRWXG,
-			FsIOStatics *_fsIoStat = &gFsIoStatics)
-		: parentDirFd(_parentDirFd),
-		pathname(_path),
-		mode(_mode),
-		fsIoStat(_fsIoStat),
-		flags(DO_ACCOUNTING)
-	{
-	}
-
-	FsIOStatics *fsIoStat;
-	std::string pathname;
-	int parentDirFd;
-	mode_t mode;
-	/**
-	 * Without ACL enabled, effective mode >= (mode & 0777 & ~process_umask)
-	 * See 'enum create_mode' above.
-	 */
-	int flags;
-	enum mkdir_arg_flags {
-		NONE = 0,
-		DO_ACCOUNTING = 1 << 0,
-		IGNORE_EEXIST = 1 << 1,
-	};
-};
-void MkDir(MkDirArg &mkdirArg);
-
-struct RmDirArg {
-	explicit RmDirArg(const std::string &_path, FsIOStatics *_fsIoStat = &gFsIoStatics)
-		: pathname(_path), fsIoStat(_fsIoStat)
-	{}
-
-	std::string pathname;
-	FsIOStatics *fsIoStat;
-};
-void RmDir(RmDirArg &rmdirArg);
-
 struct RenameArg {
 	RenameArg(int _oldParentFd, std::string _oldPathname,
 			  int _newParentFd, std::string _newPathname,
 			  unsigned int _flags = 0u,
-			  FsIOStatics *_fsIoStat = &gFsIoStatics)
+			  FsIoStatistics *_fsIoStat = &gFsIoStatistics)
 		: oldParentDirFd(_oldParentFd), oldPathname(_oldPathname),
 		  newParentDirFd(_newParentFd), newPathname(_newPathname),
 		  flags(_flags), fsIoStat(_fsIoStat)
@@ -358,7 +431,7 @@ struct RenameArg {
 	 * -RENAME_NOREPLACE, don't overwrite newPathname if it exists as usually do.
 	 * -RENAME_WHITEOUT, only meaningful for overlay/union filesystem.
 	 */
-	FsIOStatics *fsIoStat;
+	FsIoStatistics *fsIoStat;
 };
 void Rename(RenameArg &renameArg);
 /**
