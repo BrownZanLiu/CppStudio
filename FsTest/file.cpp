@@ -288,7 +288,6 @@ TEST(TSFile, TCCreateFilesTxPDirx)
 	for (int i = 0; i < NR_TASKS; ++i) {
 		std::string vTestSubDir = vTestRoot + "/t" + std::to_string(i);
 		MkDirArg vArg(vTestSubDir);
-		vArg.extraFlags = MkDirArg::IGNORE_EEXIST;
 		MkDir(vArg);
 	}
 	gFsIoStatistics.Clear(FsOpId::CREATE);

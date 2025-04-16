@@ -9,12 +9,13 @@ namespace filesystem {
 
 FsIoStatistics gFsIoStatistics;
 
-void MkDir(const std::string &dirpath, mode_t mkFlags)
+void MkDir(const std::string &dirpath, mode_t mode)
 {
-	int vRc = mkdir(dirpath.c_str(), mkFlags);
+	int vRc = mkdir(dirpath.c_str(), mode);
 
 	if (vRc != 0 && errno != EEXIST) {
-		throw std::string("Failed to mkdir ") + dirpath + " err: " + strerror(errno);
+		throw std::system_error(errno, std::system_category(),
+			"Failed to mkdir " + dirpath);
 	}
 }
 
@@ -35,7 +36,7 @@ void MkDir(MkDirArg &mkdirArg)
 
 	// 0 vs. -1
 	if (vRc != 0) {
-		if (errno != EEXIST || !(mkdirArg.extraFlags & MkDirArg::IGNORE_EEXIST)) {
+		if (errno != EEXIST || (mkdirArg.extraFlags & MkDirArg::THROW_EEXIST)) {
 			throw std::system_error(errno, std::system_category(),
 				"Failed to mkdir " + mkdirArg.pathname);
 		}
@@ -44,6 +45,16 @@ void MkDir(MkDirArg &mkdirArg)
 		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
 		mkdirArg.fsIoStat->IncOperations(FsOpId::MKDIR);
 		mkdirArg.fsIoStat->AddMeasure(FsOpId::MKDIR, vUs);
+	}
+}
+
+void RmDir(const std::string &dirpath)
+{
+	int vRc = rmdir(dirpath.c_str());
+
+	if (vRc != 0 && errno != ENOENT) {
+		throw std::system_error(errno, std::system_category(),
+			"Failed to rmdir " + dirpath);
 	}
 }
 
@@ -64,8 +75,10 @@ void RmDir(RmDirArg &rmdirArg)
 
 	/* 0 vs. -1 */
 	if (vRc != 0) {
-		throw std::system_error(errno, std::system_category(),
+		if (errno != ENOENT || (rmdirArg.extraFlags & RmDirArg::THROW_ENOENT)) {
+			throw std::system_error(errno, std::system_category(),
 				"Failed to rmdir " + rmdirArg.pathname);
+		}
 	} else if ((rmdirArg.extraFlags & RmDirArg::DO_ACCOUNTING) &&
 		   rmdirArg.fsIoStat != nullptr) {
 		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
@@ -74,12 +87,13 @@ void RmDir(RmDirArg &rmdirArg)
 	}
 }
 
-int CreateFile(const std::string &filepath, int openFlags, mode_t createFlags)
+int CreateFile(const std::string &filepath, int flags, mode_t mode)
 {
-	int vFd = open(filepath.c_str(), OpenFlags::OF_CREAT | openFlags, createFlags);
+	int vFd = open(filepath.c_str(), OpenFlags::OF_CREAT | flags, mode);
 
 	if (vFd < 0) {
-		throw std::string("Failed to create ") + filepath + " err: " + strerror(errno);
+		throw std::system_error(errno, std::system_category(),
+			"Failed to create " + filepath);
 	}
 
 	return vFd;
@@ -124,12 +138,48 @@ int CreateFile(CreateFileArg &createArg)
 	return vFd;
 }
 
-int OpenPath(const std::string &filepath, int openFlags)
+int OpenPath(const std::string &pathname, int flags)
 {
-	int vFd = open(filepath.c_str(), openFlags);
+	int vFd = open(pathname.c_str(), flags);
 
 	if (vFd < 0) {
-		throw std::string("FileSystem API exception triggered by OpenPath: ") + strerror(errno);
+		throw std::system_error(errno, std::system_category(),
+			"Failed to open " + pathname);
+	}
+
+	return vFd;
+}
+
+int OpenPath(struct OpenPathArg &openArg)
+{
+	using namespace std::literals;
+
+	PerfTimePoint vTpStart, vTpEnd;
+	int vFd;
+
+	openArg.openFlags &= ~OpenFlags::OF_CREAT;
+
+	if (openArg.extraFlags & OpenPathArg::DO_ACCOUNTING) {
+		vTpStart = PerfClock::now();
+		vFd = openat(openArg.parentDirFd,
+			openArg.pathname.c_str(),
+			openArg.openFlags);
+		vTpEnd = PerfClock::now();
+	} else {
+		vFd = openat(openArg.parentDirFd,
+			openArg.pathname.c_str(),
+			openArg.openFlags);
+	}
+
+	/* -1 vs. vFd(>0) */
+	if (vFd < 0) {
+		throw std::system_error(errno, std::system_category(),
+			"Failed to open" + openArg.pathname);
+	} else if ((openArg.extraFlags & OpenPathArg::DO_ACCOUNTING) &&
+		   openArg.fsIoStat != nullptr) {
+		const auto vUs = static_cast<uint64_t>((vTpEnd - vTpStart) / 1us);
+		openArg.fsIoStat->IncOperations(FsOpId::CREATE);
+		openArg.fsIoStat->AddMeasure(FsOpId::CREATE, vUs);
 	}
 
 	return vFd;

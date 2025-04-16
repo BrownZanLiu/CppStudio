@@ -77,7 +77,7 @@ enum CreateMode {
 	CM_IXOTH = 0001
 };
 
-void MkDir(const std::string &dirpath, mode_t mkFlags);
+void MkDir(const std::string &dirpath, mode_t mode);
 struct MkDirArg {
 	explicit MkDirArg(const std::string &_pathname,
 			int _parentDirFd = AT_FDCWD,
@@ -104,11 +104,12 @@ struct MkDirArg {
 	enum mkdir_arg_flags {
 		NONE = 0,
 		DO_ACCOUNTING = 1 << 0,
-		IGNORE_EEXIST = 1 << 1,
+		THROW_EEXIST = 1 << 1,
 	};
 };
 void MkDir(MkDirArg &mkdirArg);
 
+void RmDir(const std::string &dirpath);
 struct RmDirArg {
 	explicit RmDirArg(const std::string &_pathname,
 		FsIoStatistics *_fsIoStat = &gFsIoStatistics)
@@ -124,11 +125,12 @@ struct RmDirArg {
 	enum rmdir_arg_flags {
 		NONE = 0,
 		DO_ACCOUNTING = 1 << 0,
+		THROW_ENOENT = 1 << 1,
 	};
 };
 void RmDir(RmDirArg &rmdirArg);
 
-int CreateFile(const std::string &filepath, int openFlags, mode_t createFlags);
+int CreateFile(const std::string &filepath, int flags, mode_t mode);
 struct CreateFileArg {
 	explicit CreateFileArg(std::string _pathname,
 		int _parentDirFd = AT_FDCWD,
@@ -154,7 +156,7 @@ struct CreateFileArg {
 	 * If and only if O_CREAT or O_TMPFILE specified in openFlags,
 	 * mode will be and must be considered.
 	 * MUST means not to ignore it. Otherwise, there would be undefined behavior.
-	 * Supported values, see 'enum class CreateMode' above.
+	 * Supported values, see 'enum CreateMode' above.
 	 */
 
 	int extraFlags;
@@ -167,8 +169,24 @@ struct CreateFileArg {
 int CreateFile(struct CreateFileArg &createFileArg);
 
 int OpenPath(const std::string &filepath, int openFlags);
+struct OpenPathArg {
 
-enum LinkFlags {
+	FsIoStatistics *fsIoStat;
+	std::string pathname;
+	int parentDirFd;
+	int openFlags;
+
+	int extraFlags;
+	enum openpath_arg_flags {
+		NONE = 0,
+		DO_ACCOUNTING = 1 << 0,
+	};
+};
+int OpenPath(struct OpenPathArg &openArg);
+
+enum LinkFlags: int {
+	LF_NONE = 0,
+
 	// include/uapi/linux/fcntl.h
 	LF_SYMLINK_FOLLOW = 0x400,
 	/**
@@ -184,11 +202,12 @@ enum LinkFlags {
 	 */
 };
 
+void LinkPath(const std::string srcPath, const std::string dstPath);
 struct LinkPathArg {
 	explicit LinkPathArg(std::string _srcPathname, std::string _dstPathname,
 		int _srcParentFd = AT_FDCWD,
 		int _dstParentFd = AT_FDCWD,
-		int _flags = 0,
+		LinkFlags _flags = LinkFlags::LF_NONE,
 		FsIoStatistics *_fsIoStat = &gFsIoStatistics)
 		: fsIoStat(_fsIoStat),
 		srcParentFd(_srcParentFd),
@@ -205,7 +224,7 @@ struct LinkPathArg {
 	int dstParentFd;
 	std::string srcPathname;
 	std::string dstPathname;
-	int flags;
+	LinkFlags flags;
 
 	int extraFlags;
 	enum link_arg_flags {
