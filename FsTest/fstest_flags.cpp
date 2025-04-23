@@ -6,9 +6,10 @@
  * Use command-line arguments to modify default behaviors.
  */
 DEFINE_bool(debug, false, "Build a debug version.");
-DEFINE_string(root, "", "Specify the root directory where fstest will run.");
 DEFINE_string(logroot, "", "Specify the root directory of logging where fstest will run.");
+DEFINE_string(root, "", "Specify the root directory where fstest will run.");
 DEFINE_string(pathname, "", "Specify filesystem target on which we will do work.");
+DEFINE_string(name_prefix, "", "Specify basename prefix of targets.");
 DEFINE_uint32(jobnum, 0u, "Specify number of threads to do works.");
 DEFINE_uint32(treedepth, 0u, "Specify number of layers of the target directory tree.");
 DEFINE_uint32(treeout, 0u, "Specify number of directory children.");

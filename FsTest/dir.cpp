@@ -63,10 +63,16 @@ TEST(TSDirectory, TCRmDirOneShot)
 
 int MkDirMain(const std::string &parentDir, const std::string &namePrefix, int nrDirs2Mk)
 {
+	std::string vExtraPrefix = FLAGS_name_prefix;
+	if (vExtraPrefix.length() > 0) {
+		vExtraPrefix += "_";
+	}
+
 	try {
 		MkDirArg vMkDirArg{""};
 		for (int i = 0; i < nrDirs2Mk; ++i) {
-			vMkDirArg.pathname = parentDir + "/" + namePrefix + std::to_string(i);
+			vMkDirArg.pathname = parentDir + "/" + vExtraPrefix +
+				namePrefix + std::to_string(i);
 			MkDir(vMkDirArg);
 		}
 	} catch (std::system_error &e) {
@@ -80,10 +86,16 @@ int MkDirMain(const std::string &parentDir, const std::string &namePrefix, int n
 
 int RmDirMain(const std::string &parentDir, const std::string &namePrefix, int nrDirs2Mk)
 {
+	std::string vExtraPrefix = FLAGS_name_prefix;
+	if (vExtraPrefix.length() > 0) {
+		vExtraPrefix += "_";
+	}
+
 	try {
 		RmDirArg vRmDirArg{""};
 		for (int i = 0; i < nrDirs2Mk; ++i) {
-			vRmDirArg.pathname = parentDir + "/" + namePrefix + std::to_string(i);
+			vRmDirArg.pathname = parentDir + "/" + vExtraPrefix +
+				namePrefix + std::to_string(i);
 			RmDir(vRmDirArg);
 		}
 	} catch (std::system_error &e) {

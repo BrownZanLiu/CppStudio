@@ -70,10 +70,15 @@ int CreateFileMain(const std::string &parentDir,
 {
 	const int FILE_BYTES = FLAGS_filesize > 0 ? FLAGS_filesize : BYTES_PER_PAGE;
 	const int PAGES = FILE_BYTES / BYTES_PER_PAGE;
+	std::string vExtraPrefix = FLAGS_name_prefix;
+	if (vExtraPrefix.length() > 0) {
+		vExtraPrefix += "_";
+	}
 
 	try {
 		for (int i = 0; i < nrFiles2Create; ++i) {
-			CreateFileArg vCreateArg{parentDir + "/" + namePrefix + std::to_string(i)};
+			CreateFileArg vCreateArg{parentDir + "/" + vExtraPrefix +
+				namePrefix + std::to_string(i)};
 			int vFd = CreateFile(vCreateArg);
 			for (int pi = 0; pi < PAGES; ++pi) {
 				WritePage(vFd, pi);
@@ -94,9 +99,15 @@ int DelFileMain(const std::string &parentDir,
 	const std::string &namePrefix,
 	int nrFiles2Del)
 {
+	std::string vExtraPrefix = FLAGS_name_prefix;
+	if (vExtraPrefix.length() > 0) {
+		vExtraPrefix += "_";
+	}
+
 	try {
 		for (int i = 0; i < nrFiles2Del; ++i) {
-			UnlinkPathArg vDelArg{parentDir + "/" + namePrefix + std::to_string(i)};
+			UnlinkPathArg vDelArg{parentDir + "/" + vExtraPrefix +
+				namePrefix + std::to_string(i)};
 			UnlinkPath(vDelArg);
 		}
 	} catch (std::system_error &e) {
