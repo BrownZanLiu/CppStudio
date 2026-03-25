@@ -1,0 +1,5 @@
+*
+!toolchain_file.cmake
+!generate_buildsystem
+!build
+!.gitignore
