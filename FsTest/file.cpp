@@ -379,3 +379,42 @@ TEST(TSFile, TCDeleteFilesTxPDirx)
 		<< std::endl;
 }
 
+TEST(TSFile, TCWriteOneFile)
+{
+	const uint64_t FILE_SIZE = FLAGS_filesize != 0 ?
+		FLAGS_filesize : 64 * BYTES_PER_GIGA;
+	const uint32_t IO_SIZE = FLAGS_iosize != 0 ?
+		FLAGS_iosize : BYTES_PER_MEGA;
+	const uint64_t IO_COUNT = FILE_SIZE / IO_SIZE;
+	const std::string FILE_PATH = !FLAGS_pathname.empty() ?
+		FLAGS_pathname : "file2write.bin";
+
+	char *vBuf = new char[IO_SIZE];
+	uint64_t *vPQword = reinterpret_cast<uint64_t *>(vBuf);
+	for (uint32_t i = IO_SIZE / 8; i > 0;) {
+		vPQword[--i] = i;
+	}
+
+	std::cout << NowString() << "Try to write " << FILE_PATH << std::endl;
+	try {
+		CreateFileArg vCreateArg{FILE_PATH};
+		int vFd = CreateFile(vCreateArg);
+		vCreateArg.fsIoStat->Clear(FsOpId::WRITE);
+		EXPECT_TRUE(vCreateArg.fsIoStat->StartOrReStartAccounting());
+		for (uint64_t i = 0; i < IO_COUNT; ++i) {
+			vPQword[0] = 1llu << 63 + i;
+			WriteFile(vFd, vBuf, IO_SIZE);
+		}
+		EXPECT_TRUE(vCreateArg.fsIoStat->StopIfAccounting());
+		CloseFd(vFd);
+
+		std::cout << NowString() << "Succeeded to write file in "
+			<< vCreateArg.fsIoStat->AccumulatedMeasure(FsOpId::CREATE)
+			<< " us." << std::endl;
+	} catch (std::system_error &e) {
+		std::cout << e.what() << std::endl;
+		EXPECT_FALSE(true);
+	}
+	delete[] vBuf;
+}
+

@@ -15,7 +15,8 @@ DEFINE_uint32(treedepth, 0u, "Specify number of layers of the target directory t
 DEFINE_uint32(treeout, 0u, "Specify number of directory children.");
 DEFINE_uint32(treeout_min, 0u, "Specify minimum directory children.");
 DEFINE_uint32(treeout_max, 0u, "Specify maximum directory children.");
-DEFINE_uint32(dirnum, 0llu, "Specify directories to create.");
+DEFINE_uint32(dirnum, 0u, "Specify directories to create.");
+DEFINE_uint32(iosize, 0u, "Specify IO size in bytes for read/write.");
 DEFINE_uint64(filesperdir, 0llu, "Specify number of files per directory.");
 DEFINE_uint64(filesperdir_min, 0llu, "Specify minimum files per directory.");
 DEFINE_uint64(filesperdir_max, 0llu, "Specify maximum files per directory.");

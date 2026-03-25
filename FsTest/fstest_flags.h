@@ -15,6 +15,7 @@ DECLARE_uint32(treeout);
 DECLARE_uint32(treeout_min);
 DECLARE_uint32(treeout_max);
 DECLARE_uint32(dirnum);
+DECLARE_uint32(iosize);
 DECLARE_uint64(filesperdir);
 DECLARE_uint32(filesperdir_min);
 DECLARE_uint32(filesperdir_max);
