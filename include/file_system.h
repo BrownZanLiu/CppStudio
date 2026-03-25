@@ -170,6 +170,18 @@ int CreateFile(struct CreateFileArg &createFileArg);
 
 int OpenPath(const std::string &filepath, int openFlags);
 struct OpenPathArg {
+	explicit OpenPathArg(std::string _pathname,
+		int _parentDirFd = AT_FDCWD,
+		int _openFlags = OpenFlags::OF_CREAT | OpenFlags::OF_EXCL | OpenFlags::OF_RDWR,
+		FsIoStatistics *_fsIoStat = &gFsIoStatistics)
+		: fsIoStat(_fsIoStat),
+		pathname(_pathname),
+		parentDirFd(_parentDirFd),
+		openFlags(_openFlags),
+		extraFlags(DO_ACCOUNTING)
+	{
+	}
+
 
 	FsIoStatistics *fsIoStat;
 	std::string pathname;
