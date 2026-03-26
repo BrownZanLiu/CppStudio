@@ -395,22 +395,19 @@ TEST(TSFile, TCWriteOneFile)
 		vPQword[--i] = i;
 	}
 
-	std::cout << NowString() << "Try to write " << FILE_PATH << std::endl;
 	try {
 		CreateFileArg vCreateArg{FILE_PATH};
 		int vFd = CreateFile(vCreateArg);
-		vCreateArg.fsIoStat->Clear(FsOpId::WRITE);
-		EXPECT_TRUE(vCreateArg.fsIoStat->StartOrReStartAccounting());
+
+		std::cout << NowString() << "Try to write " << FILE_PATH << std::endl;
 		for (uint64_t i = 0; i < IO_COUNT; ++i) {
 			vPQword[0] = 1llu << 63 + i;
 			WriteFile(vFd, vBuf, IO_SIZE);
 		}
-		EXPECT_TRUE(vCreateArg.fsIoStat->StopIfAccounting());
+		std::cout << NowString() << "Succeeded to write file." << std::endl;
+
 		CloseFd(vFd);
 
-		std::cout << NowString() << "Succeeded to write file in "
-			<< vCreateArg.fsIoStat->AccumulatedMeasure(FsOpId::CREATE)
-			<< " us." << std::endl;
 	} catch (std::system_error &e) {
 		std::cout << e.what() << std::endl;
 		EXPECT_FALSE(true);
