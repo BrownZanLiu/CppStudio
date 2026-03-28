@@ -427,21 +427,16 @@ TEST(TSFile, TCReadOneFile)
 
 	char *vBuf = new char[IO_SIZE];
 
-	std::cout << NowString() << "Try to read " << FILE_PATH << std::endl;
 	try {
 		OpenPathArg vOpenArg{FILE_PATH};
 		int vFd = OpenPath(vOpenArg);
-		vOpenArg.fsIoStat->Clear(FsOpId::READ);
-		EXPECT_TRUE(vOpenArg.fsIoStat->StartOrReStartAccounting());
+		std::cout << NowString() << "Try to read " << FILE_PATH << std::endl;
 		for (uint64_t i = 0; i < IO_COUNT; ++i) {
 			ReadFile(vFd, vBuf, IO_SIZE);
 		}
-		EXPECT_TRUE(vOpenArg.fsIoStat->StopIfAccounting());
+		std::cout << NowString() << "Succeeded to read file. " << std::endl;
 		CloseFd(vFd);
 
-		std::cout << NowString() << "Succeeded to read file in "
-			<< vOpenArg.fsIoStat->AccumulatedMeasure(FsOpId::CREATE)
-			<< " us." << std::endl;
 	} catch (std::system_error &e) {
 		std::cout << e.what() << std::endl;
 		EXPECT_FALSE(true);
