@@ -383,7 +383,7 @@ TEST(TSFile, TCWriteOneFile)
 {
 	const uint64_t FILE_SIZE = FLAGS_filesize != 0 ?
 		FLAGS_filesize : 64 * BYTES_PER_GIGA;
-	const uint32_t IO_SIZE = FLAGS_iosize != 0 ?
+	const uint64_t IO_SIZE = FLAGS_iosize != 0 ?
 		FLAGS_iosize : BYTES_PER_MEGA;
 	const uint64_t IO_COUNT = FILE_SIZE / IO_SIZE;
 	const std::string FILE_PATH = !FLAGS_pathname.empty() ?
@@ -419,7 +419,7 @@ TEST(TSFile, TCReadOneFile)
 {
 	const uint64_t FILE_SIZE = FLAGS_filesize != 0 ?
 		FLAGS_filesize : 64 * BYTES_PER_GIGA;
-	const uint32_t IO_SIZE = FLAGS_iosize != 0 ?
+	const uint64_t IO_SIZE = FLAGS_iosize != 0 ?
 		FLAGS_iosize : BYTES_PER_MEGA;
 	const uint64_t IO_COUNT = FILE_SIZE / IO_SIZE;
 	const std::string FILE_PATH = !FLAGS_pathname.empty() ?

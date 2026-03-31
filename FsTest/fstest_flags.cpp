@@ -16,7 +16,6 @@ DEFINE_uint32(treeout, 0u, "Specify number of directory children.");
 DEFINE_uint32(treeout_min, 0u, "Specify minimum directory children.");
 DEFINE_uint32(treeout_max, 0u, "Specify maximum directory children.");
 DEFINE_uint32(dirnum, 0u, "Specify directories to create.");
-DEFINE_uint32(iosize, 0u, "Specify IO size in bytes for read/write.");
 DEFINE_uint64(filesperdir, 0llu, "Specify number of files per directory.");
 DEFINE_uint64(filesperdir_min, 0llu, "Specify minimum files per directory.");
 DEFINE_uint64(filesperdir_max, 0llu, "Specify maximum files per directory.");
@@ -24,6 +23,9 @@ DEFINE_uint64(filenum, 0llu, "Specify files to create.");
 DEFINE_uint64(filesize, 0llu, "Specify file size in bytes");
 DEFINE_uint64(filesize_min, 0llu, "Specify minimum file size in bytes.");
 DEFINE_uint64(filesize_max, 0llu, "Specify maximum file size in bytes.");
+DEFINE_uint64(iosize, 0u, "Specify IO size in bytes for read/write.");
+DEFINE_uint64(iosize_min, 0u, "Specify minimum IO size in bytes for read/write.");
+DEFINE_uint64(iosize_max, 0u, "Specify maximum IO size in bytes for read/write.");
 
 
 /** ==== Flags for C++ std filesystem api tests ==== **/
