@@ -305,26 +305,30 @@ void StatFd(int fd, struct stat *pStat)
 
 void WriteFile(int fd, const char *buf, size_t len)
 {
-	ssize_t vRc = write(fd, buf, len);
-	if (vRc == len) {
-		return;
-	} else if (vRc == -1) {
-		throw std::string("FileSystem API exception triggered by WriteFile: ") + strerror(errno);
-	} else if (vRc != len)  {
-		throw std::string("FileSystem API exception triggered by WriteFile: ") + std::to_string(vRc);
-	}
+	do {
+		ssize_t vRc = write(fd, buf, len);
+		if (vRc == -1) {
+			throw std::string("FileSystem API exception triggered by WriteFile: ")
+			+ strerror(errno);
+		}
+		len -= vRc;
+		buf += vRc;
+	} while (len > 0);
 }
 
 void ReadFile(int fd, char *buf, size_t len)
 {
-	ssize_t vRc = read(fd, buf, len);
-	if (vRc == len || vRc == 0) {
-		return;
-	} else if (vRc == -1) {
-		throw std::string("FileSystem API exception triggered by ReadFile: ") + strerror(errno);
-	} else if (vRc != len) {
-		throw std::string("FileSystem API exception triggered by ReadFile: ") + std::to_string(vRc);
-	}
+	do {
+		ssize_t vRc = read(fd, buf, len);
+		if (vRc == len || vRc == 0) {
+			break;
+		} else if (vRc == -1) {
+			throw std::string("FileSystem API exception triggered by ReadFile: ")
+			+ strerror(errno);
+		}
+		len -= vRc;
+		buf += vRc;
+	} while (len > 0);
 }
 
 void SendFile(int destFd, int srcFd, off_t *pOffset, size_t bytes)
