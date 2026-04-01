@@ -8,6 +8,7 @@
 
 #include <file_system.h>
 #include <host_info.h>  // liuzan::HostInfo
+#include <perf.h>  // liuzan::PerfTimePoint
 
 #include "fstest_flags.h"
 #include "libfstest.h"
@@ -391,7 +392,7 @@ TEST(TSFile, TCWriteOneFile)
 
 	char *vBuf = new char[IO_SIZE];
 	uint64_t *vPQword = reinterpret_cast<uint64_t *>(vBuf);
-	for (uint32_t i = IO_SIZE / 8; i > 0;) {
+	for (uint64_t i = IO_SIZE / 8; i > 0;) {
 		vPQword[--i] = i;
 	}
 
@@ -400,16 +401,23 @@ TEST(TSFile, TCWriteOneFile)
 		int vFd = CreateFile(vCreateArg);
 
 		std::cout << NowString() << "Try to write " << FILE_PATH << std::endl;
+		PerfTimePoint vTpStart = PerfClock::now();
 		for (uint64_t i = 0; i < IO_COUNT; ++i) {
 			vPQword[0] = 1llu << 63 + i;
 			WriteFile(vFd, vBuf, IO_SIZE);
 		}
-		std::cout << NowString() << "Succeeded to write file." << std::endl;
+		PerfTimePoint vTpEnd = PerfClock::now();
+		std::cout << NowString() << "Succeeded to write file in "
+		          << static_cast<uint64_t>((vTpEnd - vTpStart) / 1us)
+		          << " us." << std::endl;
 
 		CloseFd(vFd);
 
-	} catch (std::system_error &e) {
+	} catch (std::exception &e) {
 		std::cout << e.what() << std::endl;
+		EXPECT_FALSE(true);
+	} catch (std::string &s) {
+		std::cout << s << std::endl;
 		EXPECT_FALSE(true);
 	}
 	delete[] vBuf;
@@ -430,16 +438,25 @@ TEST(TSFile, TCReadOneFile)
 	try {
 		OpenPathArg vOpenArg{FILE_PATH};
 		int vFd = OpenPath(vOpenArg);
+
 		std::cout << NowString() << "Try to read " << FILE_PATH << std::endl;
+		PerfTimePoint vTpStart = PerfClock::now();
 		for (uint64_t i = 0; i < IO_COUNT; ++i) {
 			ReadFile(vFd, vBuf, IO_SIZE);
 		}
-		std::cout << NowString() << "Succeeded to read file. " << std::endl;
-		CloseFd(vFd);
+		PerfTimePoint vTpEnd = PerfClock::now();
+		std::cout << NowString() << "Succeeded to read file in "
+		          << static_cast<uint64_t>((vTpEnd - vTpStart) / 1us)
+		          << " us." << std::endl;
 
-	} catch (std::system_error &e) {
+		CloseFd(vFd);
+	} catch (std::exception &e) {
 		std::cout << e.what() << std::endl;
 		EXPECT_FALSE(true);
+	} catch (std::string &s) {
+		std::cout << s << std::endl;
+		EXPECT_FALSE(true);
 	}
+
 	delete[] vBuf;
 }
